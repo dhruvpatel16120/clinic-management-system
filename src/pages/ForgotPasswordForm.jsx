@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { FaEnvelope, FaArrowLeft, FaCircleCheck, FaTriangleExclamation, FaCircleNotch, FaArrowRight, FaStar } from 'react-icons/fa6'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '../hooks/useAuth'
 
 export default function ForgotPasswordForm() {
   const { resetPassword } = useAuth()

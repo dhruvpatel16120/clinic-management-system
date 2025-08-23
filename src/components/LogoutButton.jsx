@@ -1,4 +1,4 @@
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '../hooks/useAuth'
 import { FaArrowRightFromBracket } from 'react-icons/fa6'
 
 export default function LogoutButton() {

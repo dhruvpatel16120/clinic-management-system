@@ -1,125 +1,47 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useEffect, useState } from 'react'
+import { signOut, onAuthStateChanged } from 'firebase/auth'
+import { auth } from '../firebase/config'
 import { 
-  createUserWithEmailAndPassword, 
-  signInWithEmailAndPassword, 
-  signOut, 
-  onAuthStateChanged,
-  sendPasswordResetEmail,
-  sendEmailVerification,
-  updateProfile
-} from 'firebase/auth'
-import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore'
-import { auth, db } from '../firebase/config'
+  createUserWithRole,
+  signInUser,
+  resetUserPassword,
+  resendUserVerificationEmail,
+  fetchUserRoleFromFirestore
+} from '../utils/authUtils'
 
 const AuthContext = createContext()
 
-export function useAuth() {
-  return useContext(AuthContext)
-}
-
+export { AuthContext }
 export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null)
   const [userRole, setUserRole] = useState(null)
   const [loading, setLoading] = useState(true)
 
   async function signup(email, password, fullName, role) {
-    try {
-      // Create user with email and password
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password)
-      const user = userCredential.user
-
-      // Update profile with display name
-      await updateProfile(user, {
-        displayName: fullName
-      })
-
-      // Configure action code settings for better email delivery
-      const actionCodeSettings = {
-        url: `${window.location.origin}/login`,
-        handleCodeInApp: true,
-        iOS: {
-          bundleId: 'com.clinicmanagement.app'
-        },
-        android: {
-          packageName: 'com.clinicmanagement.app',
-          installApp: true,
-          minimumVersion: '12'
-        },
-        dynamicLinkDomain: import.meta.env.VITE_FIREBASE_DYNAMIC_LINK_DOMAIN || undefined
-      }
-
-      // Send email verification with improved settings
-      await sendEmailVerification(user, actionCodeSettings)
-
-      // Store user data in Firestore
-      await setDoc(doc(db, 'staffData', user.uid), {
-        uid: user.uid,
-        email: user.email,
-        fullName: fullName,
-        role: role,
-        emailVerified: false,
-        createdAt: new Date().toISOString(),
-        lastLogin: null,
-        verificationEmailSent: new Date().toISOString()
-      })
-
-      return user
-    } catch (error) {
-      throw error
-    }
+    return await createUserWithRole(email, password, fullName, role)
   }
 
   async function login(email, password) {
-    try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password)
-      const user = userCredential.user
-
-      // Update last login time
-      if (user.uid) {
-        await updateDoc(doc(db, 'staffData', user.uid), {
-          lastLogin: new Date().toISOString()
-        })
-      }
-
-      return user
-    } catch (error) {
-      throw error
-    }
+    return await signInUser(email, password)
   }
 
   async function logout() {
-    try {
-      await signOut(auth)
-    } catch (error) {
-      throw error
-    }
+    await signOut(auth)
   }
 
   async function resetPassword(email) {
-    try {
-      await sendPasswordResetEmail(auth, email)
-    } catch (error) {
-      throw error
-    }
+    return await resetUserPassword(email)
   }
 
   async function resendVerificationEmail() {
-    try {
-      if (currentUser) {
-        await sendEmailVerification(currentUser)
-      }
-    } catch (error) {
-      throw error
+    if (currentUser) {
+      return await resendUserVerificationEmail(currentUser)
     }
   }
 
   async function fetchUserRole(uid) {
     try {
-      const userDoc = await getDoc(doc(db, 'staffData', uid))
-      if (userDoc.exists()) {
-        return userDoc.data().role
-      }
-      return null
+      return await fetchUserRoleFromFirestore(uid)
     } catch (error) {
       console.error('Error fetching user role:', error)
       return null
@@ -130,7 +52,6 @@ export function AuthProvider({ children }) {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         setCurrentUser(user)
-        // Fetch user role from Firestore
         const role = await fetchUserRole(user.uid)
         setUserRole(role)
       } else {

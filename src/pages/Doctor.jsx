@@ -1,4 +1,4 @@
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '../hooks/useAuth'
 import LogoutButton from '../components/LogoutButton'
 import { FaUserDoctor, FaCalendar, FaUserInjured, FaPills } from 'react-icons/fa6'
 
