@@ -63,6 +63,276 @@ The Life Clinic Management System is a full-stack web application built with mod
 - **Build Tool**: Vite
 - **Deployment**: Vercel
 
+## 🚀 Installation & Setup Guide
+
+### Prerequisites
+Before setting up the Life Clinic Management System, ensure you have the following:
+
+- **Node.js** (v16 or higher) - [Download here](https://nodejs.org/)
+- **npm** or **yarn** package manager
+- **Git** for version control
+- **Firebase account** - [Create here](https://console.firebase.google.com/)
+- **Modern web browser** (Chrome, Firefox, Safari, Edge)
+
+### System Requirements
+- **RAM**: Minimum 4GB, Recommended 8GB+
+- **Storage**: At least 2GB free space
+- **Internet**: Required for Firebase services and package installation
+- **OS**: Windows 10+, macOS 10.14+, or Linux (Ubuntu 18.04+)
+
+### Step-by-Step Installation
+
+#### 1. **Clone the Repository**
+```bash
+# Clone the main repository
+git clone https://github.com/dhruvpatel16120/clinic-management-system.git
+
+# Navigate to project directory
+cd clinic-management-system
+
+# Verify the clone
+ls -la
+```
+
+#### 2. **Install Dependencies**
+```bash
+# Install all required packages
+npm install
+
+# Verify installation
+npm list --depth=0
+```
+
+**Expected Output**: You should see all dependencies listed without errors.
+
+#### 3. **Firebase Project Setup**
+
+##### 3.1 Create Firebase Project
+1. Go to [Firebase Console](https://console.firebase.google.com/)
+2. Click **"Create a project"**
+3. Enter project name: `life-clinic-management-system`
+4. Enable Google Analytics (optional but recommended)
+5. Click **"Create project"**
+
+##### 3.2 Enable Authentication
+1. In Firebase Console, go to **Authentication** → **Sign-in method**
+2. Click **"Email/Password"**
+3. Enable **"Email/Password"** provider
+4. Click **"Save"**
+
+##### 3.3 Enable Firestore Database
+1. Go to **Firestore Database** → **Create database**
+2. Choose **"Start in test mode"** (for development)
+3. Select location closest to your users
+4. Click **"Done"**
+
+##### 3.4 Get Firebase Configuration
+1. Go to **Project Settings** (gear icon)
+2. Scroll to **"Your apps"** section
+3. Click **"</>"** (Web app icon)
+4. Register app with nickname: `clinic-management-web`
+5. Copy the configuration object
+
+#### 4. **Environment Configuration**
+
+##### 4.1 Create Environment File
+```bash
+# Copy the example environment file
+cp env.example.txt .env
+
+# Open the file for editing
+nano .env  # Linux/Mac
+# OR
+notepad .env  # Windows
+```
+
+##### 4.2 Update Environment Variables
+Replace the placeholder values with your actual Firebase configuration:
+
+```env
+VITE_FIREBASE_API_KEY=your_actual_api_key_here
+VITE_FIREBASE_AUTH_DOMAIN=your_project_id.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=your_project_id_here
+VITE_FIREBASE_STORAGE_BUCKET=your_project_id.appspot.com
+VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id_here
+VITE_FIREBASE_APP_ID=your_app_id_here
+```
+
+**Important**: Never commit your `.env` file to version control!
+
+#### 5. **Firebase Security Rules Configuration**
+
+##### 5.1 Access Firestore Rules
+1. In Firebase Console, go to **Firestore Database**
+2. Click **"Rules"** tab
+3. Replace the default rules with the following:
+
+```javascript
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Staff data access control
+    match /staffData/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Appointments access control
+    match /appointments/{document} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && 
+        (resource == null || resource.data.createdBy == request.auth.uid);
+    }
+    
+    // Prescriptions access control
+    match /prescriptions/{document} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && 
+        (resource == null || resource.data.doctorId == request.auth.uid);
+    }
+    
+    // Medicines access control
+    match /medicines/{document} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+    
+    // Invoices access control
+    match /invoices/{document} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && 
+        (resource == null || resource.data.createdBy == request.auth.uid);
+    }
+  }
+}
+```
+
+##### 5.2 Publish Rules
+1. Click **"Publish"** button
+2. Wait for confirmation message
+3. Verify rules are active
+
+#### 6. **Database Indexes Setup**
+
+##### 6.1 Create Composite Indexes
+Firebase may require composite indexes for complex queries. Create these in **Firestore Database** → **Indexes**:
+
+```javascript
+// Collection: appointments
+// Fields: appointmentDate (Ascending), doctorName (Ascending)
+
+// Collection: prescriptions  
+// Fields: doctorId (Ascending), createdAt (Descending)
+
+// Collection: invoices
+// Fields: createdAt (Descending), status (Ascending)
+```
+
+#### 7. **Run the Application**
+
+##### 7.1 Development Mode
+```bash
+# Start development server
+npm run dev
+
+# Expected output:
+# VITE v7.1.2  ready in 500 ms
+# ➜  Local:   http://localhost:5173/
+# ➜  Network: use --host to expose
+```
+
+##### 7.2 Access the Application
+1. Open your browser
+2. Navigate to `http://localhost:5173`
+3. You should see the home page
+
+#### 8. **First-Time Setup**
+
+##### 8.1 Create Admin Account
+1. Click **"Sign Up"** on the home page
+2. Choose **"Doctor"** or **"Receptionist"** role
+3. Fill in your details:
+   - Full Name: `Admin User`
+   - Email: `admin@clinic.com`
+   - Password: `Admin123!`
+4. Click **"Create Account"**
+
+##### 8.2 Verify Email
+1. Check your email for verification link
+2. Click the verification link
+3. Return to the application
+4. Click **"Check Again"** to verify status
+
+##### 8.3 Access Dashboard
+1. Login with your credentials
+2. You'll be redirected to your role-specific dashboard
+3. Verify all features are working
+
+### Troubleshooting Installation
+
+#### Common Issues & Solutions
+
+##### Issue 1: "Module not found" errors
+```bash
+# Solution: Clear npm cache and reinstall
+npm cache clean --force
+rm -rf node_modules package-lock.json
+npm install
+```
+
+##### Issue 2: Firebase connection errors
+- Verify environment variables are correct
+- Check Firebase project is active
+- Ensure Firestore is enabled
+- Verify security rules are published
+
+##### Issue 3: Port already in use
+```bash
+# Solution: Use different port
+npm run dev -- --port 3000
+```
+
+##### Issue 4: Build errors
+```bash
+# Solution: Check Node.js version
+node --version  # Should be 16+
+
+# Update dependencies
+npm update
+npm run build
+```
+
+### Production Deployment
+
+#### Build for Production
+```bash
+# Create production build
+npm run build
+
+# Preview production build
+npm run preview
+```
+
+#### Deploy to Vercel
+1. Push code to GitHub
+2. Connect repository to Vercel
+3. Configure environment variables
+4. Deploy automatically
+
+### Verification Checklist
+
+- [ ] Repository cloned successfully
+- [ ] Dependencies installed without errors
+- [ ] Firebase project created and configured
+- [ ] Environment variables set correctly
+- [ ] Security rules published
+- [ ] Application runs on localhost
+- [ ] Can create and verify user account
+- [ ] Can access role-specific dashboard
+- [ ] All features working properly
+
+---
+
 ## 🔐 Authentication System
 
 ### Authentication Flow
@@ -761,5 +1031,5 @@ This project is licensed under the MIT License. See [LICENSE](LICENSE) file for 
 
 ---
 
-*Last updated: December 2024*
+*Last updated: Augest 2025*
 *Version: 1.0.0*
