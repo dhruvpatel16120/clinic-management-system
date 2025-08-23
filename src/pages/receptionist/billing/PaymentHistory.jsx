@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { collection, onSnapshot, query, orderBy, where } from 'firebase/firestore'
+import { collection, onSnapshot, query, orderBy } from 'firebase/firestore'
 import { db } from '../../../firebase/config'
 import { 
   ArrowLeft, 
@@ -160,26 +160,29 @@ export default function PaymentHistory() {
       const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate())
       
       switch (dateFilter) {
-        case 'today':
+        case 'today': {
           filtered = filtered.filter(payment => {
             const paymentDate = payment.processedAt?.toDate?.() || new Date(payment.processedAt)
             return paymentDate >= startOfDay
           })
           break
-        case 'week':
+        }
+        case 'week': {
           const weekAgo = new Date(startOfDay.getTime() - 7 * 24 * 60 * 60 * 1000)
           filtered = filtered.filter(payment => {
             const paymentDate = payment.processedAt?.toDate?.() || new Date(payment.processedAt)
             return paymentDate >= weekAgo
           })
           break
-        case 'month':
+        }
+        case 'month': {
           const monthAgo = new Date(startOfDay.getTime() - 30 * 24 * 60 * 60 * 1000)
           filtered = filtered.filter(payment => {
             const paymentDate = payment.processedAt?.toDate?.() || new Date(payment.processedAt)
             return paymentDate >= monthAgo
           })
           break
+        }
       }
     }
 

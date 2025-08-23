@@ -155,16 +155,16 @@ function App() {
           <InvoicePdfGenerator />
         </ProtectedRoute>
       } />
-              <Route path="/receptionist/billing/invoices/:id/edit" element={
-          <ProtectedRoute requiredRole="receptionist">
-            <CreateInvoice />
-          </ProtectedRoute>
-        } />
-        <Route path="/receptionist/billing/reports" element={
-          <ProtectedRoute requiredRole="receptionist">
-            <Reports />
-          </ProtectedRoute>
-        } />
+      <Route path="/receptionist/billing/invoices/:id/edit" element={
+        <ProtectedRoute requiredRole="receptionist">
+          <CreateInvoice />
+        </ProtectedRoute>
+      } />
+      <Route path="/receptionist/billing/reports" element={
+        <ProtectedRoute requiredRole="receptionist">
+          <Reports />
+        </ProtectedRoute>
+      } />
 
       <Route path="/forgot-password" element={<ForgotPasswordForm />} />
       <Route path="/verify-email" element={<VerifyEmail />} />

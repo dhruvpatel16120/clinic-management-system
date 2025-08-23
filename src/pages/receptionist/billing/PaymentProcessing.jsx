@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { collection, onSnapshot, query, orderBy, where, updateDoc, doc, addDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '../../../firebase/config'
 import { 
@@ -22,7 +22,6 @@ import {
 } from 'lucide-react'
 
 export default function PaymentProcessing() {
-  const navigate = useNavigate()
   const [invoices, setInvoices] = useState([])
   const [filteredInvoices, setFilteredInvoices] = useState([])
   const [loading, setLoading] = useState(true)
@@ -38,12 +37,14 @@ export default function PaymentProcessing() {
   const [processingPayment, setProcessingPayment] = useState(false)
 
   useEffect(() => {
-    const fetchInvoices = async () => {
+    let unsubscribe
+    
+    const fetchInvoices = () => {
       try {
         const invoicesRef = collection(db, 'invoices')
         const q = query(invoicesRef, where('status', 'in', ['pending', 'overdue']), orderBy('createdAt', 'desc'))
         
-        const unsubscribe = onSnapshot(q, (snapshot) => {
+        unsubscribe = onSnapshot(q, (snapshot) => {
           const invoicesData = snapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data()
@@ -51,9 +52,10 @@ export default function PaymentProcessing() {
           setInvoices(invoicesData)
           setFilteredInvoices(invoicesData)
           setLoading(false)
+        }, (error) => {
+          console.error('Error fetching invoices:', error)
+          setLoading(false)
         })
-        
-        return unsubscribe
       } catch (error) {
         console.error('Error fetching invoices:', error)
         setLoading(false)
@@ -61,6 +63,12 @@ export default function PaymentProcessing() {
     }
     
     fetchInvoices()
+    
+    return () => {
+      if (unsubscribe) {
+        unsubscribe()
+      }
+    }
   }, [])
 
   // Filter invoices based on search

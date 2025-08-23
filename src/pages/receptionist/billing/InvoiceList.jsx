@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { collection, onSnapshot, query, orderBy, where, updateDoc, doc } from 'firebase/firestore'
+import { collection, onSnapshot, query, orderBy } from 'firebase/firestore'
 import { db } from '../../../firebase/config'
 import { 
   ArrowLeft, 
@@ -83,26 +83,29 @@ export default function InvoiceList() {
       const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate())
       
       switch (dateFilter) {
-        case 'today':
+        case 'today': {
           filtered = filtered.filter(invoice => {
             const invoiceDate = invoice.createdAt?.toDate?.() || new Date(invoice.createdAt)
             return invoiceDate >= startOfDay
           })
           break
-        case 'week':
+        }
+        case 'week': {
           const weekAgo = new Date(startOfDay.getTime() - 7 * 24 * 60 * 60 * 1000)
           filtered = filtered.filter(invoice => {
             const invoiceDate = invoice.createdAt?.toDate?.() || new Date(invoice.createdAt)
             return invoiceDate >= weekAgo
           })
           break
-        case 'month':
+        }
+        case 'month': {
           const monthAgo = new Date(startOfDay.getTime() - 30 * 24 * 60 * 60 * 1000)
           filtered = filtered.filter(invoice => {
             const invoiceDate = invoice.createdAt?.toDate?.() || new Date(invoice.createdAt)
             return invoiceDate >= monthAgo
           })
           break
+        }
       }
     }
 
@@ -137,19 +140,6 @@ export default function InvoiceList() {
 
     setFilteredInvoices(filtered)
   }, [invoices, searchQuery, statusFilter, dateFilter, sortBy, sortOrder])
-
-  // Update invoice status
-  const updateInvoiceStatus = async (invoiceId, newStatus) => {
-    try {
-      await updateDoc(doc(db, 'invoices', invoiceId), {
-        status: newStatus,
-        updatedAt: new Date()
-      })
-    } catch (error) {
-      console.error('Error updating invoice status:', error)
-      alert('Error updating invoice status')
-    }
-  }
 
   // Get status icon and color
   const getStatusIcon = (status) => {

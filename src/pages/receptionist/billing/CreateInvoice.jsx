@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { collection, addDoc, updateDoc, doc, getDoc, serverTimestamp, query, where, getDocs, onSnapshot, orderBy } from 'firebase/firestore'
+import { collection, addDoc, updateDoc, doc, getDoc, serverTimestamp, query, getDocs, orderBy } from 'firebase/firestore'
 import { db } from '../../../firebase/config'
 import { 
   ArrowLeft, 
@@ -28,7 +28,6 @@ export default function CreateInvoice() {
   const [isEditing, setIsEditing] = useState(false)
   const [patients, setPatients] = useState([])
   const [filteredPatients, setFilteredPatients] = useState([])
-  const [services, setServices] = useState([])
   const [selectedPatient, setSelectedPatient] = useState(null)
   const [showPatientModal, setShowPatientModal] = useState(false)
   const [patientSearchTerm, setPatientSearchTerm] = useState('')
@@ -82,14 +81,13 @@ export default function CreateInvoice() {
   // Fetch patients and services on component mount
   useEffect(() => {
     fetchPatients()
-    fetchServices()
     
     // If we have an ID, we're editing an existing invoice
     if (id) {
       setIsEditing(true)
       loadInvoiceData()
     }
-  }, [id])
+  }, [id, loadInvoiceData])
 
   // Filter patients based on search term
   useEffect(() => {
@@ -149,29 +147,8 @@ export default function CreateInvoice() {
     }
   }
 
-  const fetchServices = async () => {
-    try {
-      const servicesRef = collection(db, 'services')
-      const snapshot = await getDocs(servicesRef)
-      const servicesData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }))
-      setServices(servicesData)
-    } catch (error) {
-      console.error('Error fetching services:', error)
-      // Fallback to sample data if collection doesn't exist
-      const sampleServices = [
-        { id: '1', name: 'Consultation Fee', price: 500, category: 'consultation' },
-        { id: '2', name: 'Blood Test', price: 400, category: 'lab' },
-        { id: '3', name: 'X-Ray', price: 600, category: 'imaging' }
-      ]
-      setServices(sampleServices)
-    }
-  }
-
   // Load existing invoice data for editing
-  const loadInvoiceData = async () => {
+  const loadInvoiceData = useCallback(async () => {
     try {
       const invoiceDoc = await getDoc(doc(db, 'invoices', id))
       if (invoiceDoc.exists()) {
@@ -199,7 +176,7 @@ export default function CreateInvoice() {
       console.error('Error loading invoice data:', error)
       alert('Error loading invoice data. Please try again.')
     }
-  }
+  }, [id])
 
   // Calculate invoice totals
   useEffect(() => {

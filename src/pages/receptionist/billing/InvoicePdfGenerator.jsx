@@ -63,20 +63,6 @@ export default function InvoicePdfGenerator() {
     }
   }
 
-  // Get payment method icon
-  const getPaymentMethodIcon = (method) => {
-    switch (method) {
-      case 'cash':
-        return { icon: DollarSign, color: 'text-green-400' }
-      case 'card':
-        return { icon: DollarSign, color: 'text-blue-400' }
-      case 'online':
-        return { icon: DollarSign, color: 'text-purple-400' }
-      default:
-        return { icon: DollarSign, color: 'text-slate-400' }
-    }
-  }
-
   // Generate PDF
   const generatePDF = async () => {
     setGeneratingPdf(true)

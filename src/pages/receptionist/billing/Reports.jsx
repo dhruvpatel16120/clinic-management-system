@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { collection, onSnapshot, query, orderBy, where, getDocs } from 'firebase/firestore'
+import { collection, onSnapshot, query, orderBy } from 'firebase/firestore'
 import { db } from '../../../firebase/config'
 import { 
   ArrowLeft, 
@@ -93,7 +93,7 @@ export default function Reports() {
           return paymentDate >= startOfDay
         })
         break
-      case 'week':
+      case 'week': {
         const weekAgo = new Date(startOfDay.getTime() - 7 * 24 * 60 * 60 * 1000)
         filteredInvoices = filteredInvoices.filter(invoice => {
           const invoiceDate = invoice.createdAt?.toDate?.() || new Date(invoice.createdAt)
@@ -104,7 +104,8 @@ export default function Reports() {
           return paymentDate >= weekAgo
         })
         break
-      case 'month':
+      }
+      case 'month': {
         const monthAgo = new Date(startOfDay.getTime() - 30 * 24 * 60 * 60 * 1000)
         filteredInvoices = filteredInvoices.filter(invoice => {
           const invoiceDate = invoice.createdAt?.toDate?.() || new Date(invoice.createdAt)
@@ -115,7 +116,8 @@ export default function Reports() {
           return paymentDate >= monthAgo
         })
         break
-      case 'quarter':
+      }
+      case 'quarter': {
         const quarterAgo = new Date(startOfDay.getTime() - 90 * 24 * 60 * 60 * 1000)
         filteredInvoices = filteredInvoices.filter(invoice => {
           const invoiceDate = invoice.createdAt?.toDate?.() || new Date(invoice.createdAt)
@@ -126,7 +128,8 @@ export default function Reports() {
           return paymentDate >= quarterAgo
         })
         break
-      case 'year':
+      }
+      case 'year': {
         const yearAgo = new Date(startOfDay.getTime() - 365 * 24 * 60 * 60 * 1000)
         filteredInvoices = filteredInvoices.filter(invoice => {
           const invoiceDate = invoice.createdAt?.toDate?.() || new Date(invoice.createdAt)
@@ -137,6 +140,7 @@ export default function Reports() {
           return paymentDate >= yearAgo
         })
         break
+      }
     }
 
     // Status filtering
