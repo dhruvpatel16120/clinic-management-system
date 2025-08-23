@@ -51,9 +51,28 @@ export async function signInUser(email, password) {
   const user = userCredential.user
 
   if (user.uid) {
-    await updateDoc(doc(db, 'staffData', user.uid), {
-      lastLogin: new Date().toISOString()
-    })
+    // Check if the user document exists in Firestore
+    const userDocRef = doc(db, 'staffData', user.uid)
+    const userDoc = await getDoc(userDocRef)
+    
+    if (userDoc.exists()) {
+      // Update existing document
+      await updateDoc(userDocRef, {
+        lastLogin: new Date().toISOString()
+      })
+    } else {
+      // Create new document if it doesn't exist (fallback for users created before Firestore integration)
+      await setDoc(userDocRef, {
+        uid: user.uid,
+        email: user.email,
+        fullName: user.displayName || 'Unknown',
+        role: 'doctor', // Default role - user can update this later
+        emailVerified: user.emailVerified,
+        createdAt: new Date().toISOString(),
+        lastLogin: new Date().toISOString(),
+        verificationEmailSent: null
+      })
+    }
   }
 
   return user
@@ -82,9 +101,16 @@ export async function resendUserVerificationEmail(user) {
 }
 
 export async function fetchUserRoleFromFirestore(uid) {
-  const userDoc = await getDoc(doc(db, 'staffData', uid))
-  if (userDoc.exists()) {
-    return userDoc.data().role
+  try {
+    const userDoc = await getDoc(doc(db, 'staffData', uid))
+    if (userDoc.exists()) {
+      return userDoc.data().role
+    }
+    return null
+  } catch (error) {
+    console.error('Error fetching user role:', error)
+    return null
   }
-  return null
 }
+
+

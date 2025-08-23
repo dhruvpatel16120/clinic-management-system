@@ -20,7 +20,14 @@ export default function ProtectedRoute({ children, requiredRole = null }) {
   }
 
   if (requiredRole && userRole !== requiredRole) {
-    return <Navigate to="/unauthorized" replace />
+    // Redirect to login with error message or to appropriate dashboard
+    if (userRole === 'doctor') {
+      return <Navigate to="/doctor" replace />
+    } else if (userRole === 'receptionist') {
+      return <Navigate to="/receptionist" replace />
+    } else {
+      return <Navigate to="/login" replace />
+    }
   }
 
   return children

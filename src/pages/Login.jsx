@@ -2,10 +2,11 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { FaHospital, FaEnvelope, FaLock, FaEye, FaEyeSlash, FaArrowRight, FaStar, FaShieldHalved, FaUserDoctor, FaUserTie } from 'react-icons/fa6'
 import { useAuth } from '../hooks/useAuth'
+import { fetchUserRoleFromFirestore } from '../utils/authUtils'
 
 export default function Login() {
   const navigate = useNavigate()
-  const { login, userRole } = useAuth()
+  const { login } = useAuth()
   const [showPassword, setShowPassword] = useState(false)
   const [selectedRole, setSelectedRole] = useState('')
   const [email, setEmail] = useState('')
@@ -16,27 +17,35 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!selectedRole || !email || !password) {
+      setError('Please fill in all fields and select your role.')
       return
     }
     
     setIsLoading(true)
     setError('')
     
-    try {
-      // Use Firebase authentication
-      await login(email, password)
-      
-      // Check if user's role matches selected role
-      if (userRole === selectedRole) {
-        // Redirect based on role
-        if (selectedRole === 'doctor') {
-          navigate('/doctor')
-        } else if (selectedRole === 'receptionist') {
-          navigate('/receptionist')
-        }
-      } else {
-        setError('Selected role does not match your account role.')
-      }
+         try {
+       // Use Firebase authentication
+       const user = await login(email, password)
+       
+       // Fetch the user's role from Firestore
+       const userRole = await fetchUserRoleFromFirestore(user.uid)
+       
+       // Check if user's role matches selected role
+       if (userRole === selectedRole) {
+         // Redirect based on role
+         if (selectedRole === 'doctor') {
+           navigate('/doctor')
+         } else if (selectedRole === 'receptionist') {
+           navigate('/receptionist')
+         }
+       } else if (userRole) {
+         setError(`Selected role does not match your account role. Your account is registered as: ${userRole}`)
+         setIsLoading(false)
+       } else {
+         // If no role is found, redirect to doctor by default (fallback)
+         navigate('/doctor')
+       }
     } catch (error) {
       console.error('Login error:', error)
       // Handle specific Firebase errors
@@ -50,10 +59,11 @@ export default function Login() {
         errorMessage = 'Please enter a valid email address.'
       } else if (error.code === 'auth/user-disabled') {
         errorMessage = 'This account has been disabled.'
+      } else if (error.message.includes('No document to update')) {
+        errorMessage = 'Account setup incomplete. Please contact support.'
       }
       
       setError(errorMessage)
-    } finally {
       setIsLoading(false)
     }
   }
@@ -258,23 +268,6 @@ export default function Login() {
           </div>
         </div>
       </div>
-
-      {/* CSS for animations */}
-      <style jsx>{`
-        @keyframes float {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-20px); }
-        }
-        .animation-delay-1000 {
-          animation-delay: 1s;
-        }
-        .animation-delay-2000 {
-          animation-delay: 2s;
-        }
-        .bg-radial-gradient {
-          background: radial-gradient(ellipse at center, var(--tw-gradient-stops));
-        }
-      `}</style>
     </div>
   )
 }

@@ -1,9 +1,41 @@
 import { useAuth } from '../hooks/useAuth'
+import { Link } from 'react-router-dom'
+import { useState, useEffect } from 'react'
 import LogoutButton from '../components/LogoutButton'
-import { FaBellConcierge, FaUserPlus, FaCalendarCheck, FaUsers } from 'react-icons/fa6'
+import EmailVerificationStatus from '../components/EmailVerificationStatus'
+import { Bell, UserPlus, CalendarCheck, Users, Calendar } from 'lucide-react'
+import { collection, onSnapshot, query, where, orderBy } from 'firebase/firestore'
+import { db } from '../firebase/config'
 
 export default function Receptionist() {
   const { currentUser, userRole } = useAuth()
+  const [appointments, setAppointments] = useState([])
+  const [todayAppointments, setTodayAppointments] = useState(0)
+  const [totalAppointments, setTotalAppointments] = useState(0)
+
+  // Fetch real appointment data
+  useEffect(() => {
+    const appointmentsRef = collection(db, 'appointments')
+    const q = query(appointmentsRef, orderBy('createdAt', 'desc'))
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const appointmentsData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }))
+      setAppointments(appointmentsData)
+      
+      // Calculate today's appointments
+      const today = new Date().toISOString().split('T')[0]
+      const todayCount = appointmentsData.filter(apt => apt.appointmentDate === today).length
+      setTodayAppointments(todayCount)
+      setTotalAppointments(appointmentsData.length)
+    }, (error) => {
+      console.error('Error fetching appointments:', error)
+    })
+
+    return () => unsubscribe()
+  }, [])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 text-white">
@@ -11,9 +43,9 @@ export default function Receptionist() {
       <header className="bg-white/5 backdrop-blur-xl border-b border-white/10 p-4">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-cyan-500/20 rounded-xl flex items-center justify-center">
-              <FaBellConcierge className="w-6 h-6 text-cyan-400" />
-            </div>
+                         <div className="w-10 h-10 bg-cyan-500/20 rounded-xl flex items-center justify-center">
+               <Bell className="w-6 h-6 text-cyan-400" />
+             </div>
             <div>
               <h1 className="text-xl font-bold">Receptionist Dashboard</h1>
               <p className="text-sm text-slate-400">Welcome, {currentUser?.displayName || 'Receptionist'}</p>
@@ -27,32 +59,36 @@ export default function Receptionist() {
       <main className="max-w-7xl mx-auto p-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* Quick Stats */}
-          <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-xl">
-            <div className="flex items-center space-x-3 mb-4">
-              <FaUserPlus className="w-6 h-6 text-cyan-400" />
-              <h3 className="text-lg font-semibold">New Patients</h3>
-            </div>
-            <p className="text-3xl font-bold text-cyan-400">5</p>
-            <p className="text-sm text-slate-400 mt-2">Registered today</p>
-          </div>
+                     <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-xl">
+             <div className="flex items-center space-x-3 mb-4">
+               <UserPlus className="w-6 h-6 text-cyan-400" />
+               <h3 className="text-lg font-semibold">Total Appointments</h3>
+             </div>
+             <p className="text-3xl font-bold text-cyan-400">{totalAppointments}</p>
+             <p className="text-sm text-slate-400 mt-2">All time</p>
+           </div>
 
-          <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-xl">
-            <div className="flex items-center space-x-3 mb-4">
-              <FaCalendarCheck className="w-6 h-6 text-green-400" />
-              <h3 className="text-lg font-semibold">Appointments</h3>
-            </div>
-            <p className="text-3xl font-bold text-green-400">24</p>
-            <p className="text-sm text-slate-400 mt-2">Scheduled today</p>
-          </div>
+                     <Link to="/receptionist/appointments" className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-xl hover:bg-white/10 transition-colors cursor-pointer">
+             <div className="flex items-center justify-between mb-4">
+               <div className="flex items-center space-x-3">
+                 <CalendarCheck className="w-6 h-6 text-green-400" />
+                 <h3 className="text-lg font-semibold">Today's Appointments</h3>
+               </div>
+               <Calendar className="w-4 h-4 text-green-400" />
+             </div>
+             <p className="text-3xl font-bold text-green-400">{todayAppointments}</p>
+             <p className="text-sm text-slate-400 mt-2">Scheduled today</p>
+             <p className="text-xs text-green-400 mt-2">Click to manage appointments →</p>
+           </Link>
 
-          <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-xl">
-            <div className="flex items-center space-x-3 mb-4">
-              <FaUsers className="w-6 h-6 text-purple-400" />
-              <h3 className="text-lg font-semibold">Waiting List</h3>
-            </div>
-            <p className="text-3xl font-bold text-purple-400">8</p>
-            <p className="text-sm text-slate-400 mt-2">Currently waiting</p>
-          </div>
+                     <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-xl">
+             <div className="flex items-center space-x-3 mb-4">
+               <Users className="w-6 h-6 text-purple-400" />
+               <h3 className="text-lg font-semibold">Scheduled</h3>
+             </div>
+             <p className="text-3xl font-bold text-purple-400">{appointments.filter(apt => apt.status === 'scheduled').length}</p>
+             <p className="text-sm text-slate-400 mt-2">Currently scheduled</p>
+           </div>
         </div>
 
         {/* User Info Card */}
@@ -73,9 +109,7 @@ export default function Receptionist() {
             </div>
             <div>
               <p className="text-slate-400 text-sm">Email Verified</p>
-              <p className={`font-medium ${currentUser?.emailVerified ? 'text-green-400' : 'text-red-400'}`}>
-                {currentUser?.emailVerified ? 'Yes' : 'No'}
-              </p>
+              <EmailVerificationStatus />
             </div>
           </div>
         </div>

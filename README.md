@@ -82,12 +82,44 @@ Update your Firestore security rules to allow authenticated access to the `staff
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Allow users to read/write their own data
     match /staffData/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Allow authenticated users to read all staff data (for role checking)
+    match /staffData/{document=**} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == resource.data.uid;
+    }
+    
+    // Allow creation of new documents for authenticated users
+    match /staffData/{userId} {
+      allow create: if request.auth != null && request.auth.uid == userId;
     }
   }
 }
 ```
+
+**Important**: These rules allow users to read all staff data for role verification while maintaining security for write operations. The `create` rule ensures new users can create their staff data documents.
+
+### Email Verification
+
+The system uses a simple and reliable approach for email verification:
+
+**How it works:**
+1. When a user signs up, Firebase automatically sends a verification email
+2. When the user clicks the verification link in their email, Firebase Auth verifies their email
+3. On the dashboard, users see their current verification status
+4. If not verified, users can click "Check Again" to refresh their verification status
+
+**Simple Logic:**
+- The system directly reads the `emailVerified` status from Firebase Auth
+- Users can manually refresh their verification status by clicking "Check Again"
+- This triggers a user reload and page refresh to display the latest status
+- No complex state management or Firestore syncing needed
+
+This approach is much more reliable and straightforward than complex verification tracking systems.
 
 ### 5. Run the Application
 

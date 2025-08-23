@@ -3,6 +3,8 @@ import Home from './pages/Home'
 import Login from './pages/Login'
 import Doctor from './pages/Doctor'
 import Receptionist from './pages/Receptionist'
+import DoctorAppointments from './pages/doctor/Appointments'
+import ReceptionistAppointments from './pages/receptionist/Appointments'
 import Signup from './pages/Signup'
 import ForgotPasswordForm from './pages/ForgotPasswordForm'
 import VerifyEmail from './pages/VerifyEmail'
@@ -20,9 +22,19 @@ function App() {
           <Doctor />
         </ProtectedRoute>
       } />
+      <Route path="/doctor/appointments" element={
+        <ProtectedRoute requiredRole="doctor">
+          <DoctorAppointments />
+        </ProtectedRoute>
+      } />
       <Route path="/receptionist" element={
         <ProtectedRoute requiredRole="receptionist">
           <Receptionist />
+        </ProtectedRoute>
+      } />
+      <Route path="/receptionist/appointments" element={
+        <ProtectedRoute requiredRole="receptionist">
+          <ReceptionistAppointments />
         </ProtectedRoute>
       } />
       <Route path="/forgot-password" element={<ForgotPasswordForm />} />

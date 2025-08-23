@@ -1,6 +1,8 @@
 import { useAuth } from '../hooks/useAuth'
+import { Link } from 'react-router-dom'
 import LogoutButton from '../components/LogoutButton'
-import { FaUserDoctor, FaCalendar, FaUserInjured, FaPills } from 'react-icons/fa6'
+import EmailVerificationStatus from '../components/EmailVerificationStatus'
+import { FaUserDoctor, FaCalendar, FaUserInjured, FaPills, FaCalendarDay } from 'react-icons/fa6'
 
 export default function Doctor() {
   const { currentUser, userRole } = useAuth()
@@ -27,14 +29,18 @@ export default function Doctor() {
       <main className="max-w-7xl mx-auto p-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* Quick Stats */}
-          <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-xl">
-            <div className="flex items-center space-x-3 mb-4">
-              <FaCalendar className="w-6 h-6 text-blue-400" />
-              <h3 className="text-lg font-semibold">Today's Appointments</h3>
+          <Link to="/doctor/appointments" className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-xl hover:bg-white/10 transition-colors cursor-pointer">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center space-x-3">
+                <FaCalendar className="w-6 h-6 text-blue-400" />
+                <h3 className="text-lg font-semibold">Today's Appointments</h3>
+              </div>
+                             <FaCalendarDay className="w-4 h-4 text-blue-400" />
             </div>
             <p className="text-3xl font-bold text-blue-400">12</p>
             <p className="text-sm text-slate-400 mt-2">+2 from yesterday</p>
-          </div>
+            <p className="text-xs text-blue-400 mt-2">Click to view all appointments →</p>
+          </Link>
 
           <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-xl">
             <div className="flex items-center space-x-3 mb-4">
@@ -71,11 +77,9 @@ export default function Doctor() {
               <p className="text-slate-400 text-sm">Full Name</p>
               <p className="text-white font-medium">{currentUser?.displayName}</p>
             </div>
-            <div>
+                        <div>
               <p className="text-slate-400 text-sm">Email Verified</p>
-              <p className={`font-medium ${currentUser?.emailVerified ? 'text-green-400' : 'text-red-400'}`}>
-                {currentUser?.emailVerified ? 'Yes' : 'No'}
-              </p>
+              <EmailVerificationStatus />
             </div>
           </div>
         </div>

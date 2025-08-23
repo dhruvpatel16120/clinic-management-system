@@ -1,7 +1,7 @@
 import { createContext, useEffect, useState } from 'react'
 import { signOut, onAuthStateChanged } from 'firebase/auth'
 import { auth } from '../firebase/config'
-import { 
+import {
   createUserWithRole,
   signInUser,
   resetUserPassword,
@@ -38,6 +38,8 @@ export function AuthProvider({ children }) {
       return await resendUserVerificationEmail(currentUser)
     }
   }
+
+
 
   async function fetchUserRole(uid) {
     try {
