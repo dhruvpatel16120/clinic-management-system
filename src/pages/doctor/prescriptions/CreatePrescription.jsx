@@ -64,11 +64,15 @@ export default function CreatePrescription() {
     
     setInitialLoading(true)
     try {
+      // First try to fetch as prescription
       const prescriptionRef = doc(db, 'prescriptions', id)
       const prescriptionSnap = await getDoc(prescriptionRef)
       
       if (prescriptionSnap.exists()) {
         const prescriptionData = prescriptionSnap.data()
+        
+        // This is edit mode - editing an existing prescription
+        setIsEditMode(true)
         
         // Set form data
         setFormData({
@@ -90,22 +94,48 @@ export default function CreatePrescription() {
 
         toast.success('Prescription data loaded successfully')
       } else {
-        toast.error('Prescription not found')
-        navigate('/doctor/prescriptions')
+        // If not a prescription, try to fetch as appointment
+        const appointmentRef = doc(db, 'appointments', id)
+        const appointmentSnap = await getDoc(appointmentRef)
+        
+        if (appointmentSnap.exists()) {
+          const appointmentData = appointmentSnap.data()
+          
+          // This is create mode - creating a new prescription from appointment
+          setIsEditMode(false)
+          
+          // Pre-fill form with appointment data
+          setFormData(prev => ({
+            ...prev,
+            patientId: appointmentData.id,
+            patientName: appointmentData.patientName || '',
+            patientAge: appointmentData.patientAge || '',
+            patientGender: appointmentData.patientGender || '',
+            patientPhone: appointmentData.patientPhone || '',
+            patientEmail: appointmentData.patientEmail || '',
+            symptoms: appointmentData.symptoms || '',
+            notes: appointmentData.notes || ''
+          }))
+
+          toast.success(`Patient data loaded from appointment: ${appointmentData.patientName}`)
+        } else {
+          toast.error('Prescription or appointment not found')
+          navigate('/doctor/prescriptions')
+        }
       }
     } catch (error) {
-      console.error('Error fetching prescription:', error)
-      toast.error('Error loading prescription data')
+      console.error('Error fetching data:', error)
+      toast.error('Error loading data')
       navigate('/doctor/prescriptions')
     } finally {
       setInitialLoading(false)
     }
   }, [id, navigate])
 
-  // Check if we're in edit mode
+  // Check if we're in edit mode and fetch data
   useEffect(() => {
     if (id) {
-      setIsEditMode(true)
+      // Check if this is a prescription ID (edit mode) or appointment ID (new prescription)
       fetchPrescriptionData()
     }
   }, [id, fetchPrescriptionData])
@@ -374,7 +404,7 @@ export default function CreatePrescription() {
                          <div>
                <h1 className="text-xl font-bold">{isEditMode ? 'Edit Prescription' : 'Create Prescription'}</h1>
                <p className="text-sm text-slate-400">
-                 {isEditMode ? 'Update prescription details' : 'Write a new prescription for patient'}
+                 {isEditMode ? 'Update prescription details' : id ? 'Create prescription from appointment' : 'Write a new prescription for patient'}
                </p>
              </div>
           </div>

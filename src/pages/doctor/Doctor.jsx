@@ -1,11 +1,107 @@
+import { useState, useEffect } from 'react'
 import { useAuth } from '../../hooks/useAuth'
 import { Link } from 'react-router-dom'
 import LogoutButton from '../../components/LogoutButton'
 import EmailVerificationStatus from '../../components/EmailVerificationStatus'
-import { FaUserDoctor, FaCalendar, FaUserInjured, FaPills, FaCalendarDay, FaFileLines, FaPlus } from 'react-icons/fa6'
+import { FaUserDoctor, FaCalendar, FaUserInjured, FaPills, FaCalendarDay, FaFileLines, FaPlus, FaHashtag } from 'react-icons/fa6'
+import { collection, query, where, onSnapshot, doc, getDoc } from 'firebase/firestore'
+import { db } from '../../firebase/config'
 
 export default function Doctor() {
   const { currentUser, userRole } = useAuth()
+  const [stats, setStats] = useState({
+    todayAppointments: 0,
+    waitingPatients: 0,
+    weeklyPrescriptions: 0,
+    loading: true
+  })
+  const [doctorName, setDoctorName] = useState('')
+
+  // Fetch doctor's name from staffData collection
+  useEffect(() => {
+    if (!currentUser) return
+
+    const fetchDoctorName = async () => {
+      try {
+        const userDocRef = doc(db, 'staffData', currentUser.uid)
+        const userDoc = await getDoc(userDocRef)
+        
+        if (userDoc.exists()) {
+          const userData = userDoc.data()
+          const name = userData.fullName || currentUser.displayName || 'Unknown Doctor'
+          setDoctorName(name)
+        } else {
+          setDoctorName(currentUser.displayName || 'Unknown Doctor')
+        }
+      } catch (error) {
+        console.error('Error fetching doctor name:', error)
+        setDoctorName(currentUser.displayName || 'Unknown Doctor')
+      }
+    }
+
+    fetchDoctorName()
+  }, [currentUser])
+
+  // Fetch real-time stats
+  useEffect(() => {
+    if (!doctorName) return
+
+    const today = new Date().toISOString().split('T')[0]
+    const weekStart = new Date()
+    weekStart.setDate(weekStart.getDate() - 7)
+
+    // Query for today's appointments
+    const todayAppointmentsRef = collection(db, 'appointments')
+    const todayQuery = query(
+      todayAppointmentsRef,
+      where('appointmentDate', '==', today),
+      where('doctorName', '==', doctorName)
+    )
+
+    // Query for waiting patients (tokens generated but not completed)
+    const waitingPatientsRef = collection(db, 'appointments')
+    const waitingQuery = query(
+      waitingPatientsRef,
+      where('appointmentDate', '==', today),
+      where('doctorName', '==', doctorName)
+    )
+
+    // Query for weekly prescriptions
+    const weeklyPrescriptionsRef = collection(db, 'prescriptions')
+    const weeklyQuery = query(
+      weeklyPrescriptionsRef,
+      where('doctorId', '==', currentUser.uid)
+    )
+
+    // Set up real-time listeners
+    const unsubscribeToday = onSnapshot(todayQuery, (snapshot) => {
+      const todayCount = snapshot.docs.length
+      setStats(prev => ({ ...prev, todayAppointments: todayCount }))
+    })
+
+    const unsubscribeWaiting = onSnapshot(waitingQuery, (snapshot) => {
+      const waitingCount = snapshot.docs.filter(doc => {
+        const data = doc.data()
+        return data.status === 'token_generated' || data.status === 'in_progress'
+      }).length
+      setStats(prev => ({ ...prev, waitingPatients: waitingCount }))
+    })
+
+    const unsubscribeWeekly = onSnapshot(weeklyQuery, (snapshot) => {
+      const weeklyCount = snapshot.docs.filter(doc => {
+        const data = doc.data()
+        const createdAt = new Date(data.createdAt)
+        return createdAt >= weekStart
+      }).length
+      setStats(prev => ({ ...prev, weeklyPrescriptions: weeklyCount, loading: false }))
+    })
+
+    return () => {
+      unsubscribeToday()
+      unsubscribeWaiting()
+      unsubscribeWeekly()
+    }
+  }, [doctorName, currentUser])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 text-white">
@@ -37,19 +133,49 @@ export default function Doctor() {
               </div>
               <FaCalendarDay className="w-4 h-4 text-blue-400" />
             </div>
-            <p className="text-3xl font-bold text-blue-400">12</p>
-            <p className="text-sm text-slate-400 mt-2">+2 from yesterday</p>
+            {stats.loading ? (
+              <div className="flex items-center space-x-2">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-400"></div>
+                <p className="text-lg text-slate-400">Loading...</p>
+              </div>
+            ) : (
+              <>
+                <p className="text-3xl font-bold text-blue-400">{stats.todayAppointments}</p>
+                <p className="text-sm text-slate-400 mt-2">
+                  {stats.todayAppointments === 0 ? 'No appointments today' : 
+                   stats.todayAppointments === 1 ? 'appointment scheduled' : 
+                   'appointments scheduled'}
+                </p>
+              </>
+            )}
             <p className="text-xs text-blue-400 mt-2">Click to view all appointments →</p>
           </Link>
 
-          <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-xl">
-            <div className="flex items-center space-x-3 mb-4">
-              <FaUserInjured className="w-6 h-6 text-green-400" />
-              <h3 className="text-lg font-semibold">Active Patients</h3>
+          <Link to="/doctor/tokens" className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-xl hover:bg-white/10 transition-colors cursor-pointer">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center space-x-3">
+                <FaHashtag className="w-6 h-6 text-yellow-400" />
+                <h3 className="text-lg font-semibold">Patient Queue</h3>
+              </div>
+              <FaHashtag className="w-4 h-4 text-yellow-400" />
             </div>
-            <p className="text-3xl font-bold text-green-400">8</p>
-            <p className="text-sm text-slate-400 mt-2">Currently in treatment</p>
-          </div>
+            {stats.loading ? (
+              <div className="flex items-center space-x-2">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-yellow-400"></div>
+                <p className="text-lg text-slate-400">Loading...</p>
+              </div>
+            ) : (
+              <>
+                <p className="text-3xl font-bold text-yellow-400">{stats.waitingPatients}</p>
+                <p className="text-sm text-slate-400 mt-2">
+                  {stats.waitingPatients === 0 ? 'No patients waiting' :
+                   stats.waitingPatients === 1 ? 'patient waiting' :
+                   'patients waiting'}
+                </p>
+              </>
+            )}
+            <p className="text-xs text-yellow-400 mt-2">Click to view queue →</p>
+          </Link>
 
           <Link to="/doctor/prescriptions" className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-xl hover:bg-white/10 transition-colors cursor-pointer">
             <div className="flex items-center justify-between mb-4">
@@ -59,8 +185,20 @@ export default function Doctor() {
               </div>
               <FaFileLines className="w-4 h-4 text-purple-400" />
             </div>
-            <p className="text-3xl font-bold text-purple-400">15</p>
-            <p className="text-sm text-slate-400 mt-2">This week</p>
+            {stats.loading ? (
+              <div className="flex items-center space-x-2">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-400"></div>
+                <p className="text-lg text-slate-400">Loading...</p>
+              </div>
+            ) : (
+              <>
+                <p className="text-3xl font-bold text-purple-400">{stats.weeklyPrescriptions}</p>
+                <p className="text-sm text-slate-400 mt-2">
+                  {stats.weeklyPrescriptions === 0 ? 'No prescriptions this week' :
+                   'prescriptions this week'}
+                </p>
+              </>
+            )}
             <p className="text-xs text-purple-400 mt-2">Click to manage prescriptions →</p>
           </Link>
         </div>
@@ -105,6 +243,16 @@ export default function Doctor() {
                 <div>
                   <h3 className="font-semibold">Manage Medicines</h3>
                   <p className="text-sm text-slate-400">Add/edit medicine inventory</p>
+                </div>
+              </div>
+            </Link>
+
+            <Link to="/doctor/tokens" className="bg-white/5 border border-white/10 rounded-xl p-4 hover:bg-white/10 transition-colors">
+              <div className="flex items-center space-x-3">
+                <FaHashtag className="w-5 h-5 text-blue-400" />
+                <div>
+                  <h3 className="font-semibold">Patient Queue</h3>
+                  <p className="text-sm text-slate-400">View and manage patient tokens</p>
                 </div>
               </div>
             </Link>

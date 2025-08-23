@@ -198,7 +198,8 @@ export default function Appointments() {
         const appointmentData = {
           ...formData,
           createdAt: new Date().toISOString(),
-          createdBy: currentUser?.uid || 'receptionist'
+          createdBy: currentUser?.uid || 'receptionist',
+          status: 'scheduled' // Ensure status is set to scheduled
         }
         
         await addDoc(collection(db, 'appointments'), appointmentData)
@@ -509,7 +510,7 @@ export default function Appointments() {
                       {doctors.length === 0 ? 'No doctors available' : 'Select a doctor'}
                     </option>
                     {doctors.map((doctor) => (
-                      <option key={doctor.id} value={doctor.displayName || doctor.name}>
+                      <option key={doctor.id} value={doctor.fullName || doctor.displayName || doctor.name}>
                         Dr. {doctor.fullName || doctor.name}
                         {doctor.specialization && ` (${doctor.specialization})`}
                       </option>

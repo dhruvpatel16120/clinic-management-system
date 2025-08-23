@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import LogoutButton from '../../components/LogoutButton'
 import EmailVerificationStatus from '../../components/EmailVerificationStatus'
-import { Bell, UserPlus, CalendarCheck, Users, Calendar, FileText, FileDown } from 'lucide-react'
+import { Bell, UserPlus, CalendarCheck, Users, Calendar, FileText, FileDown, Hash } from 'lucide-react'
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore'
 import { db } from '../../firebase/config'
 
@@ -117,14 +117,18 @@ export default function Receptionist() {
             <p className="text-xs text-purple-400 mt-2">Click to manage prescriptions →</p>
           </Link>
 
-          <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-xl">
-            <div className="flex items-center space-x-3 mb-4">
-              <Users className="w-6 h-6 text-yellow-400" />
-              <h3 className="text-lg font-semibold">Scheduled</h3>
+          <Link to="/receptionist/tokens" className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-xl hover:bg-white/10 transition-colors cursor-pointer">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center space-x-3">
+                <Hash className="w-6 h-6 text-blue-400" />
+                <h3 className="text-lg font-semibold">Token Management</h3>
+              </div>
+              <Hash className="w-4 h-4 text-blue-400" />
             </div>
-            <p className="text-3xl font-bold text-yellow-400">{appointments.filter(apt => apt.status === 'scheduled').length}</p>
-            <p className="text-sm text-slate-400 mt-2">Currently scheduled</p>
-          </div>
+            <p className="text-3xl font-bold text-blue-400">{appointments.filter(apt => apt.tokenNumber).length}</p>
+            <p className="text-sm text-slate-400 mt-2">Tokens generated today</p>
+            <p className="text-xs text-blue-400 mt-2">Click to manage tokens →</p>
+          </Link>
         </div>
 
         {/* Quick Actions */}
@@ -157,6 +161,16 @@ export default function Receptionist() {
                 <div>
                   <h3 className="font-semibold">Create Appointment</h3>
                   <p className="text-sm text-slate-400">Schedule new appointment</p>
+                </div>
+              </div>
+            </Link>
+
+            <Link to="/receptionist/tokens" className="bg-white/5 border border-white/10 rounded-xl p-4 hover:bg-white/10 transition-colors">
+              <div className="flex items-center space-x-3">
+                <Hash className="w-5 h-5 text-blue-400" />
+                <div>
+                  <h3 className="font-semibold">Token Management</h3>
+                  <p className="text-sm text-slate-400">Manage patient tokens</p>
                 </div>
               </div>
             </Link>

@@ -67,7 +67,7 @@ export default function DoctorAppointments() {
     toast.success('Loading your appointments...')
     
     // Fetch all appointments and filter client-side to handle name variations
-    console.log('Searching for appointments with doctor name:', doctorName)
+    
     const appointmentsRef = collection(db, 'appointments')
     const q = query(appointmentsRef, orderBy('createdAt', 'desc'))
     
@@ -113,9 +113,7 @@ export default function DoctorAppointments() {
       
       if (doctorAppointments.length > 0) {
         toast.success(`Loaded ${doctorAppointments.length} appointments`)
-        console.log('Found appointments:', doctorAppointments.map(apt => ({ id: apt.id, doctorName: apt.doctorName, patientName: apt.patientName })))
       } else {
-        console.log('No appointments found. All appointments:', allAppointments.map(apt => ({ id: apt.id, doctorName: apt.doctorName, patientName: apt.patientName })))
         toast.success('No appointments found for you')
       }
     }, (error) => {
