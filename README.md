@@ -1,248 +1,303 @@
-# Clinic Management System
+# 🏥 Life Clinic Management System
 
-[![Live Demo](https://img.shields.io/badge/Live%20Demo-Visit%20Site-blue?style=for-the-badge)](https://life-clinic-management-system.vercel.app)
-[![Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com)
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Visit%20Site-blue?style=for-the-badge&logo=vercel)](https://life-clinic-management-system.vercel.app)
+[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com)
+[![React](https://img.shields.io/badge/React-19.1.1-61DAFB?style=for-the-badge&logo=react)](https://reactjs.org/)
+[![Firebase](https://img.shields.io/badge/Firebase-12.1.0-FFCA28?style=for-the-badge&logo=firebase)](https://firebase.google.com/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-4.1.12-38B2AC?style=for-the-badge&logo=tailwind-css)](https://tailwindcss.com/)
+[![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
 
 > 🚀 **Live Application**: [life-clinic-management-system.vercel.app](https://life-clinic-management-system.vercel.app)
 
-A modern, secure clinic management system built with React, Firebase, and Tailwind CSS. Streamline your healthcare operations with role-based access control and comprehensive patient management.
+A modern, secure, and feature-rich clinic management system built with React 19, Firebase, and Tailwind CSS. Streamline your healthcare operations with comprehensive patient management, appointment scheduling, prescription management, billing systems, and role-based access control.
+
+## ✨ Features
+
+### 🔐 **Authentication & Security**
+- **Firebase Authentication** with email/password
+- **Email Verification** for account activation
+- **Password Reset** functionality
+- **Role-Based Access Control** (Doctor & Receptionist)
+- **Protected Routes** for unauthorized access prevention
+- **Secure Firestore Rules** for data protection
+
+### 👨‍⚕️ **Doctor Dashboard**
+- **Real-time Statistics** (appointments, waiting patients, prescriptions)
+- **Appointment Management** with patient details
+- **Prescription Creation & Management**
+- **Medicine Database** with search and filtering
+- **Patient Queue Management** with token system
+- **Prescription History** and editing capabilities
+
+### 🏥 **Receptionist Dashboard**
+- **Appointment Scheduling** and management
+- **Token Management** system for patient queues
+- **Patient Registration** and information management
+- **Prescription Viewing** and management
+- **Real-time Updates** across all systems
+
+### 💰 **Billing & Payment System**
+- **Invoice Creation** with detailed itemization
+- **Multiple Payment Methods** (Cash, Card, Online)
+- **Payment Processing** and status tracking
+- **Payment History** and reporting
+- **PDF Generation** for invoices and prescriptions
+- **Revenue Analytics** and financial reports
+
+### 📱 **Modern UI/UX**
+- **Responsive Design** for all devices
+- **Beautiful Gradients** and modern aesthetics
+- **Real-time Updates** with Firebase listeners
+- **Interactive Components** with smooth animations
+- **Toast Notifications** for user feedback
+- **Search & Filter** capabilities throughout
 
 ## 🌟 Live Demo
 
 Experience the application live at: **[life-clinic-management-system.vercel.app](https://life-clinic-management-system.vercel.app)**
 
-### Test Accounts
+### 🧪 Test Accounts
 - **Doctor**: Create a new account with Doctor role
 - **Receptionist**: Create a new account with Receptionist role
 
-## Features
+## 📸 Application Preview
 
-- 🔐 **Secure Authentication** - Firebase Authentication with email/password
-- 👥 **Role-Based Access** - Doctor and Receptionist roles with protected routes
-- 📧 **Email Verification** - Automatic email verification after signup
-- 🔒 **Password Reset** - Secure password reset functionality
-- 💾 **Data Storage** - Firestore database for user data and roles
-- 🎨 **Modern UI** - Beautiful, responsive design with Tailwind CSS
-- ⚡ **Fast Performance** - Built with Vite for optimal development experience
+Here's a comprehensive preview of all the key features and interfaces in the Life Clinic Management System:
 
-## Prerequisites
+| Feature | Preview |
+|---------|---------|
+| **Authentication** | ![Login Interface](preview/login.png) |
+| **User Registration** | ![Signup Interface](preview/signup.png) |
+| **Doctor Dashboard** | ![Doctor Dashboard](preview/doctor_dashboard.png) |
+| **Doctor Appointments** | ![Doctor Patient Appointments](preview/doctor_patient_appointment.png) |
+| **Doctor Patient Queue** | ![Doctor Patient Queue](preview/doctor_patient_queue.png) |
+| **Doctor Prescriptions** | ![Doctor Prescriptions](preview/doctor_prescription.png) |
+| **Doctor Medicine Management** | ![Doctor Medicine Management](preview/doctor_medicine.png) |
+| **Receptionist Dashboard** | ![Receptionist Dashboard](preview/receptionist_dashboard.png) |
+| **Receptionist Appointments** | ![Receptionist Appointments](preview/receptionist_appointment.png) |
+| **Receptionist Token Management** | ![Receptionist Token Management](preview/receptionist_tokens.png) |
+| **Receptionist Prescriptions** | ![Receptionist Prescriptions](preview/receptionist_prescription.png) |
+| **Receptionist Billing** | ![Receptionist Billing](preview/receptionist_billing.png) |
+| **Receptionist Billing Reports** | ![Receptionist Billing Reports](preview/receptionist_billing_report.png) |
 
+## 🚀 Quick Start
+
+### Prerequisites
 - Node.js (v16 or higher)
 - npm or yarn
 - Firebase project
 
-## Setup Instructions
-
-### 1. Clone and Install Dependencies
-
+### 1. Clone and Install
 ```bash
-git clone <repository-url>
-cd cms
+git clone https://github.com/dhruvpatel16120/clinic-management-system.git
+cd clinic-management-system
 npm install
 ```
 
-### 2. Firebase Configuration
-
+### 2. Firebase Setup
 1. Go to [Firebase Console](https://console.firebase.google.com/)
-2. Create a new project or select an existing one
-3. Enable Authentication:
-   - Go to Authentication > Sign-in method
-   - Enable Email/Password authentication
-4. Enable Firestore Database:
-   - Go to Firestore Database
-   - Create database in test mode
-5. Get your Firebase config:
-   - Go to Project Settings > General
-   - Scroll down to "Your apps" section
-   - Click on the web app icon (</>)
-   - Copy the config object
+2. Create a new project or select existing one
+3. Enable **Authentication** (Email/Password)
+4. Enable **Firestore Database** (test mode)
+5. Get your Firebase configuration
 
 ### 3. Environment Configuration
-
-1. Copy `env.example.txt` to `.env`:
-   ```bash
-   cp env.example.txt .env
-   ```
-
-2. Update `.env` with your Firebase configuration:
-   ```env
-   VITE_FIREBASE_API_KEY=your_actual_api_key
-   VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
-   VITE_FIREBASE_PROJECT_ID=your_project_id
-   VITE_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
-   VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
-   VITE_FIREBASE_APP_ID=your_app_id
-   ```
-
-### 4. Firestore Security Rules
-
-Update your Firestore security rules to allow authenticated access to the `staffData` collection:
-
-```javascript
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    // Allow users to read/write their own data
-    match /staffData/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-    
-    // Allow authenticated users to read all staff data (for role checking)
-    match /staffData/{document=**} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == resource.data.uid;
-    }
-    
-    // Allow creation of new documents for authenticated users
-    match /staffData/{userId} {
-      allow create: if request.auth != null && request.auth.uid == userId;
-    }
-  }
-}
+```bash
+cp env.example.txt .env
 ```
 
-**Important**: These rules allow users to read all staff data for role verification while maintaining security for write operations. The `create` rule ensures new users can create their staff data documents.
+Update `.env` with your Firebase config:
+```env
+VITE_FIREBASE_API_KEY=your_api_key
+VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=your_project_id
+VITE_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
+VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+VITE_FIREBASE_APP_ID=your_app_id
+```
 
-### Email Verification
-
-The system uses a simple and reliable approach for email verification:
-
-**How it works:**
-1. When a user signs up, Firebase automatically sends a verification email
-2. When the user clicks the verification link in their email, Firebase Auth verifies their email
-3. On the dashboard, users see their current verification status
-4. If not verified, users can click "Check Again" to refresh their verification status
-
-**Simple Logic:**
-- The system directly reads the `emailVerified` status from Firebase Auth
-- Users can manually refresh their verification status by clicking "Check Again"
-- This triggers a user reload and page refresh to display the latest status
-- No complex state management or Firestore syncing needed
-
-This approach is much more reliable and straightforward than complex verification tracking systems.
-
-### 5. Run the Application
-
+### 4. Run Development Server
 ```bash
 npm run dev
 ```
 
-The application will be available at `http://localhost:5173`
+Visit `http://localhost:5173` to see your application!
+
+## 🏗️ Project Structure
+
+```
+src/
+├── components/          # Reusable UI components
+│   ├── LogoutButton.jsx
+│   ├── ProtectedRoute.jsx
+│   ├── EmailVerificationStatus.jsx
+│   └── TokenDisplay.jsx
+├── contexts/           # React context providers
+│   └── AuthContext.jsx
+├── firebase/           # Firebase configuration
+│   └── config.js
+├── hooks/              # Custom React hooks
+│   └── useAuth.js
+├── pages/              # Application pages
+│   ├── auth/           # Authentication pages
+│   │   ├── Login.jsx
+│   │   ├── Signup.jsx
+│   │   ├── ForgotPasswordForm.jsx
+│   │   └── VerifyEmail.jsx
+│   ├── doctor/         # Doctor-specific pages
+│   │   ├── Doctor.jsx
+│   │   ├── appointment/
+│   │   ├── prescriptions/
+│   │   └── token/
+│   ├── receptionist/   # Receptionist-specific pages
+│   │   ├── Receptionist.jsx
+│   │   ├── appointment/
+│   │   ├── billing/
+│   │   ├── prescriptions/
+│   │   └── token/
+│   └── Home.jsx
+├── utils/              # Utility functions
+│   └── authUtils.js
+├── App.jsx             # Main application component
+└── main.jsx            # Application entry point
+```
+
+## 🔧 Available Scripts
+
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start development server |
+| `npm run build` | Build for production |
+| `npm run preview` | Preview production build |
+| `npm run lint` | Run ESLint for code quality |
 
 ## 🌐 Deployment
 
 This application is deployed on **Vercel** and is live at:
 **[life-clinic-management-system.vercel.app](https://life-clinic-management-system.vercel.app)**
 
-# project structure
-```
-# auth folder ( for all auth system files)
-src/pages/auth/
-├── Login.jsx ✅
-├── Signup.jsx ✅
-├── ForgotPasswordForm.jsx ✅
-└── VerifyEmail.jsx ✅
-```
-### Deployment Status
-[![Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/your-username/life-clinic-management-system)
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/your-username/life-clinic-management-system)
-
-**Current Status**: ✅ **Live and Running**
-**Last Deployed**: Today
-**Environment**: Production
-
 ### Deploy Your Own
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/dhruvpatel16120/clinic-management-system)
 
 1. **Fork this repository**
 2. **Connect to Vercel**:
    - Go to [vercel.com](https://vercel.com)
    - Import your forked repository
-   - Configure environment variables in Vercel dashboard
-3. **Set Environment Variables** in Vercel:
-   ```
-   VITE_FIREBASE_API_KEY=your_api_key
-   VITE_FIREBASE_AUTH_DOMAIN=your_domain
-   VITE_FIREBASE_PROJECT_ID=your_project_id
-   VITE_FIREBASE_STORAGE_BUCKET=your_bucket
-   VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
-   VITE_FIREBASE_APP_ID=your_app_id
-   ```
+   - Configure environment variables
+3. **Set Environment Variables** in Vercel dashboard
 4. **Deploy** - Vercel will automatically deploy your application
 
-## Project Structure
+## 🔒 Security Features
 
-```
-src/
-├── components/          # Reusable components
-│   ├── LogoutButton.jsx
-│   └── ProtectedRoute.jsx
-├── contexts/           # React contexts
-│   └── AuthContext.jsx
-├── firebase/           # Firebase configuration
-│   └── config.js
-├── pages/              # Application pages
-│   ├── Doctor.jsx
-│   ├── ForgotPasswordForm.jsx
-│   ├── Home.jsx
-│   ├── Login.jsx
-│   ├── Receptionist.jsx
-│   ├── Signup.jsx
-│   └── VerifyEmail.jsx
-├── App.jsx             # Main application component
-└── main.jsx            # Application entry point
-```
+- **Email verification** required for account activation
+- **Role-based access control** with protected routes
+- **Secure password reset** via email
+- **Firestore security rules** for data protection
+- **Authentication state management** with React Context
+- **Protected API endpoints** and data access
 
-## Authentication Flow
+## 📧 Email Verification System
 
-1. **Signup**: Users create accounts with email, password, full name, and role
-2. **Email Verification**: Firebase sends verification email automatically
-3. **Login**: Users sign in with email and password
-4. **Role-Based Access**: Users are redirected to appropriate dashboards based on their role
-5. **Protected Routes**: Role-specific pages are protected from unauthorized access
+The system uses Firebase's built-in email verification:
 
-## Available Scripts
+1. **Automatic Email**: Sent when users sign up
+2. **Verification Status**: Real-time display on dashboard
+3. **Manual Refresh**: Users can check verification status
+4. **Reliable System**: Direct integration with Firebase Auth
 
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run preview` - Preview production build
+## 🛠️ Tech Stack
 
-## Security Features
+### Frontend
+- **React 19** - Modern React with latest features
+- **Vite** - Fast build tool and development server
+- **Tailwind CSS 4** - Utility-first CSS framework
+- **React Router DOM** - Client-side routing
+- **React Hot Toast** - Beautiful notifications
+- **Lucide React** - Beautiful icons
 
-- Email verification required for account activation
-- Role-based access control
-- Protected routes for authenticated users
-- Secure password reset via email
-- Firestore security rules for data protection
+### Backend & Database
+- **Firebase Authentication** - User management
+- **Firestore** - NoSQL cloud database
+- **Firebase Security Rules** - Data access control
 
-## Email Delivery Optimization
+### Development Tools
+- **ESLint** - Code quality and consistency
+- **PostCSS** - CSS processing
+- **Autoprefixer** - CSS vendor prefixing
 
-To prevent verification emails from going to spam:
+## 📱 Responsive Design
 
-1. **Configure Firebase Console**:
-   - Go to Authentication → Settings → General
-   - Add your domain to authorized domains
-   - Customize email templates
+- **Mobile-first** approach
+- **Tablet** and **desktop** optimized
+- **Touch-friendly** interface
+- **Cross-browser** compatibility
 
-2. **Set up Dynamic Links**:
-   - Go to Engage → Dynamic Links
-   - Add your domain (e.g., `your-project.page.link`)
-   - Update `.env` with `VITE_FIREBASE_DYNAMIC_LINK_DOMAIN`
+## 🔄 Real-time Features
 
-3. **Add DNS Records**:
-   - SPF: `v=spf1 include:_spf.google.com ~all`
-   - DKIM: Follow Firebase Console instructions
-   - DMARC: `v=DMARC1; p=quarantine; rua=mailto:dmarc@yourdomain.com`
+- **Live Updates** with Firebase listeners
+- **Real-time Statistics** on dashboards
+- **Instant Notifications** for actions
+- **Live Patient Queue** management
 
-4. **See `FIREBASE_EMAIL_SETUP.md`** for detailed instructions
+## 📊 Data Management
 
-## Contributing
+- **Patient Records** with comprehensive information
+- **Appointment Scheduling** with date/time management
+- **Prescription Management** with medicine database
+- **Billing System** with invoice generation
+- **Token System** for patient queue management
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
+## 🤝 Contributing
 
-## License
+We welcome contributions! Please follow these steps:
 
-This project is licensed under the MIT License.
+1. **Fork** the repository
+2. **Create** a feature branch (`git checkout -b feature/AmazingFeature`)
+3. **Commit** your changes (`git commit -m 'Add some AmazingFeature'`)
+4. **Push** to the branch (`git push origin feature/AmazingFeature`)
+5. **Open** a Pull Request
+
+### Development Guidelines
+- Follow the existing code style
+- Add proper error handling
+- Include relevant tests
+- Update documentation as needed
+
+## 📄 License
+
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
+
+## 👨‍💻 Author
+
+**Dhruv Patel**
+- GitHub: [@dhruvpatel16120](https://github.com/dhruvpatel16120)
+- Live Demo: [life-clinic-management-system.vercel.app](https://life-clinic-management-system.vercel.app)
+
+## 🙏 Acknowledgments
+
+- **Firebase** for backend services
+- **Vercel** for hosting and deployment
+- **React Team** for the amazing framework
+- **Tailwind CSS** for the beautiful styling system
+- **Open Source Community** for inspiration and tools
+
+## 📞 Support
+
+If you have any questions or need help:
+
+1. **Check** the [Documentation](DOCUMENTATION.md)
+2. **Open** an [Issue](https://github.com/dhruvpatel16120/clinic-management-system/issues)
+3. **Star** the repository if you find it helpful
+
+---
+
+<div align="center">
+
+**⭐ Star this repository if it helped you! ⭐**
+
+[![GitHub stars](https://img.shields.io/github/stars/dhruvpatel16120/clinic-management-system?style=social)](https://github.com/dhruvpatel16120/clinic-management-system)
+[![GitHub forks](https://img.shields.io/github/forks/dhruvpatel16120/clinic-management-system?style=social)](https://github.com/dhruvpatel16120/clinic-management-system)
+[![GitHub issues](https://img.shields.io/github/issues/dhruvpatel16120/clinic-management-system)](https://github.com/dhruvpatel16120/clinic-management-system/issues)
+
+</div>
