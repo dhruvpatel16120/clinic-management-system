@@ -9,23 +9,27 @@ import {
   Clock, 
   Phone, 
   Mail, 
-  Plus,
   Search,
   Filter,
   FileText,
   Pill,
   Eye,
-  Edit,
-  Trash2,
+  Download,
+  Printer,
   ArrowLeft,
   CalendarDays,
   CalendarRange,
-  CalendarCheck
+  CalendarCheck,
+  FileDown,
+  Users,
+  CheckCircle,
+  AlertTriangle
 } from 'lucide-react'
-import { collection, onSnapshot, query, orderBy, doc, deleteDoc } from 'firebase/firestore'
+import { collection, onSnapshot, query, orderBy, where } from 'firebase/firestore'
 import { db } from '../../../firebase/config'
+import { downloadPrescriptionPDF } from './PrescriptionPdfGenerator'
 
-export default function Prescriptions() {
+export default function ReceptionistPrescriptions() {
   const { currentUser } = useAuth()
   const [prescriptions, setPrescriptions] = useState([])
   const [filteredPrescriptions, setFilteredPrescriptions] = useState([])
@@ -33,61 +37,29 @@ export default function Prescriptions() {
   const [viewMode, setViewMode] = useState('today') // today, week, month, all
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState('all')
+  const [filterDoctor, setFilterDoctor] = useState('all')
   const [loading, setLoading] = useState(false)
+  const [doctors, setDoctors] = useState([])
 
-  // Fetch prescriptions for the logged-in doctor
+  // Fetch prescriptions
   useEffect(() => {
     if (!currentUser) return
 
     setLoading(true)
     
-    // Fetch all prescriptions and filter by doctor
     const prescriptionsRef = collection(db, 'prescriptions')
     const q = query(prescriptionsRef, orderBy('createdAt', 'desc'))
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const allPrescriptions = snapshot.docs.map(doc => ({
+      const prescriptionsData = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       }))
-      
-      // Filter prescriptions for this doctor
-      const doctorPrescriptions = allPrescriptions.filter(prescription => {
-        const prescriptionDoctorName = prescription.doctorName || ''
-        const currentDoctorName = currentUser.displayName || ''
-        
-        // Try exact match first
-        if (prescriptionDoctorName === currentDoctorName) {
-          return true
-        }
-        
-        // Try case-insensitive match
-        if (prescriptionDoctorName.toLowerCase() === currentDoctorName.toLowerCase()) {
-          return true
-        }
-        
-        // Try matching without "Dr." prefix
-        const cleanPrescriptionName = prescriptionDoctorName.replace(/^Dr\.\s*/i, '').trim()
-        const cleanCurrentName = currentDoctorName.replace(/^Dr\.\s*/i, '').trim()
-        if (cleanPrescriptionName === cleanCurrentName) {
-          return true
-        }
-        
-        // Try matching with "Dr." prefix
-        const withDrPrescriptionName = prescriptionDoctorName.startsWith('Dr.') ? prescriptionDoctorName : `Dr. ${prescriptionDoctorName}`
-        const withDrCurrentName = currentDoctorName.startsWith('Dr.') ? currentDoctorName : `Dr. ${currentDoctorName}`
-        if (withDrPrescriptionName === withDrCurrentName) {
-          return true
-        }
-        
-        return false
-      })
-      
-      setPrescriptions(doctorPrescriptions)
+      setPrescriptions(prescriptionsData)
       setLoading(false)
       
-      if (doctorPrescriptions.length > 0) {
-        toast.success(`Loaded ${doctorPrescriptions.length} prescriptions`)
+      if (prescriptionsData.length > 0) {
+        toast.success(`Loaded ${prescriptionsData.length} prescriptions`)
       } else {
         toast.success('No prescriptions found')
       }
@@ -99,6 +71,30 @@ export default function Prescriptions() {
 
     return () => unsubscribe()
   }, [currentUser])
+
+  // Fetch doctors
+  useEffect(() => {
+    const fetchDoctors = async () => {
+      try {
+        const staffRef = collection(db, 'staffData')
+        const staffQuery = query(staffRef, where('role', '==', 'doctor'))
+        
+        const unsubscribe = onSnapshot(staffQuery, (snapshot) => {
+          const doctorsData = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          }))
+          setDoctors(doctorsData)
+        })
+
+        return () => unsubscribe()
+      } catch (error) {
+        console.error('Error fetching doctors:', error)
+      }
+    }
+
+    fetchDoctors()
+  }, [])
 
   useEffect(() => {
     let filtered = prescriptions
@@ -128,6 +124,7 @@ export default function Prescriptions() {
     if (searchTerm) {
       filtered = filtered.filter(prescription => 
         prescription.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        prescription.doctorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         prescription.diagnosis.toLowerCase().includes(searchTerm.toLowerCase())
       )
     }
@@ -137,18 +134,68 @@ export default function Prescriptions() {
       filtered = filtered.filter(prescription => prescription.status === filterStatus)
     }
 
-    setFilteredPrescriptions(filtered)
-  }, [prescriptions, selectedDate, viewMode, searchTerm, filterStatus])
+    // Filter by doctor
+    if (filterDoctor !== 'all') {
+      filtered = filtered.filter(prescription => prescription.doctorName === filterDoctor)
+    }
 
-  const handleDeletePrescription = async (prescriptionId) => {
-    if (window.confirm('Are you sure you want to delete this prescription? This action cannot be undone.')) {
-      try {
-        await deleteDoc(doc(db, 'prescriptions', prescriptionId))
-        toast.success('Prescription deleted successfully!')
-      } catch (error) {
-        console.error('Error deleting prescription:', error)
-        toast.error(`Error deleting prescription: ${error.message}`)
+    setFilteredPrescriptions(filtered)
+  }, [prescriptions, selectedDate, viewMode, searchTerm, filterStatus, filterDoctor])
+
+  const handlePrintPrescription = (prescription) => {
+    // Implement print functionality
+    toast.success(`Printing prescription for ${prescription.patientName}`)
+  }
+
+  const handleDownloadPDF = (prescription) => {
+    try {
+      const success = downloadPrescriptionPDF(prescription)
+      if (success) {
+        toast.success(`PDF downloaded for ${prescription.patientName}`)
+      } else {
+        toast.error(`Failed to generate PDF for ${prescription.patientName}`)
       }
+    } catch (error) {
+      console.error('PDF generation error:', error)
+      toast.error(`Error generating PDF for ${prescription.patientName}`)
+    }
+  }
+
+  const handleDownloadAllPDFs = () => {
+    try {
+      let successCount = 0
+      let errorCount = 0
+      
+      filteredPrescriptions.forEach((prescription, index) => {
+        setTimeout(() => {
+          try {
+            const success = downloadPrescriptionPDF(prescription)
+            if (success) {
+              successCount++
+            } else {
+              errorCount++
+            }
+          } catch (error) {
+            errorCount++
+            console.error(`Error downloading PDF for ${prescription.patientName}:`, error)
+          }
+        }, index * 1000) // Delay each download by 1 second
+      })
+      
+      toast.success(`Started downloading ${filteredPrescriptions.length} prescriptions`)
+      
+      // Show final result after all downloads
+      setTimeout(() => {
+        if (errorCount === 0) {
+          toast.success(`Successfully downloaded ${successCount} prescriptions`)
+        } else {
+          toast.error(`Downloaded ${successCount} prescriptions, failed ${errorCount}`)
+        }
+      }, (filteredPrescriptions.length + 2) * 1000)
+      
+    } catch (error) {
+      console.error('Bulk download error:', error)
+      toast.error('Error starting bulk download')
     }
   }
 
@@ -166,7 +213,7 @@ export default function Prescriptions() {
     switch (status) {
       case 'active': return <Pill className="w-4 h-4" />
       case 'completed': return <FileText className="w-4 h-4" />
-      case 'discontinued': return <Trash2 className="w-4 h-4" />
+      case 'discontinued': return <AlertTriangle className="w-4 h-4" />
       case 'pending': return <Clock className="w-4 h-4" />
       default: return <FileText className="w-4 h-4" />
     }
@@ -181,35 +228,29 @@ export default function Prescriptions() {
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div className="flex items-center space-x-3">
             <Link 
-              to="/doctor"
+              to="/receptionist"
               className="flex items-center space-x-2 px-3 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-lg transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
               <span className="text-sm font-medium">Back to Dashboard</span>
             </Link>
             <div className="w-10 h-10 bg-green-500/20 rounded-xl flex items-center justify-center">
-              <Pill className="w-6 h-6 text-green-400" />
+              <FileText className="w-6 h-6 text-green-400" />
             </div>
             <div>
-              <h1 className="text-xl font-bold">Prescriptions</h1>
-              <p className="text-sm text-slate-400">Manage patient prescriptions</p>
+              <h1 className="text-xl font-bold">Prescriptions Management</h1>
+              <p className="text-sm text-slate-400">View and manage patient prescriptions</p>
             </div>
           </div>
           <div className="flex items-center space-x-3">
-            <Link
-              to="/doctor/prescriptions/create"
+
+            <button
+              onClick={handleDownloadAllPDFs}
               className="flex items-center space-x-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors"
             >
-              <Plus className="w-4 h-4" />
-              <span>New Prescription</span>
-            </Link>
-            <Link
-              to="/doctor/prescriptions/medicines"
-              className="flex items-center space-x-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
-            >
-              <Pill className="w-4 h-4" />
-              <span>Manage Medicines</span>
-            </Link>
+              <FileDown className="w-4 h-4" />
+              <span>Download All PDFs</span>
+            </button>
             <LogoutButton />
           </div>
         </div>
@@ -224,7 +265,7 @@ export default function Prescriptions() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
               <input
                 type="text"
-                placeholder="Search patients or diagnosis..."
+                placeholder="Search patients, doctors, or diagnosis..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10 pr-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:border-blue-400 focus:outline-none"
@@ -281,13 +322,26 @@ export default function Prescriptions() {
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:border-blue-400 focus:outline-none"
+              className="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-black focus:border-blue-400 focus:outline-none"
             >
               <option value="all">All Status</option>
               <option value="active">Active</option>
               <option value="completed">Completed</option>
               <option value="discontinued">Discontinued</option>
               <option value="pending">Pending</option>
+            </select>
+
+            <select
+              value={filterDoctor}
+              onChange={(e) => setFilterDoctor(e.target.value)}
+                className="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-black focus:border-blue-400 focus:outline-none"
+            >
+              <option value="all">All Doctors</option>
+              {doctors.map(doctor => (
+                <option key={doctor.id} value={doctor.fullName}>
+                  {doctor.fullName}
+                </option>
+              ))}
             </select>
           </div>
           
@@ -339,6 +393,10 @@ export default function Prescriptions() {
                       <span className="text-slate-300">{prescription.prescriptionDate}</span>
                     </div>
                     <div className="flex items-center space-x-2">
+                      <Users className="w-4 h-4 text-slate-400" />
+                      <span className="text-slate-300">Dr. {prescription.doctorName}</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
                       <Phone className="w-4 h-4 text-slate-400" />
                       <span className="text-slate-300">{prescription.patientPhone}</span>
                     </div>
@@ -371,23 +429,23 @@ export default function Prescriptions() {
                   
                   <div className="flex space-x-2">
                     <Link
-                      to={`/doctor/prescriptions/view/${prescription.id}`}
+                      to={`/receptionist/prescriptions/view/${prescription.id}`}
                       className="flex-1 px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm transition-colors flex items-center justify-center space-x-2"
                     >
                       <Eye className="w-4 h-4" />
                       <span>View</span>
                     </Link>
-                    <Link
-                      to={`/doctor/prescriptions/edit/${prescription.id}`}
+                    <button
+                      onClick={() => handlePrintPrescription(prescription)}
                       className="px-3 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg text-sm transition-colors"
                     >
-                      <Edit className="w-4 h-4" />
-                    </Link>
+                      <Printer className="w-4 h-4" />
+                    </button>
                     <button
-                      onClick={() => handleDeletePrescription(prescription.id)}
-                      className="px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm transition-colors"
+                      onClick={() => handleDownloadPDF(prescription)}
+                      className="px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm transition-colors"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Download className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
@@ -396,7 +454,7 @@ export default function Prescriptions() {
           )}
         </div>
 
-        {/* All Prescriptions */}
+        {/* All Prescriptions Table */}
         {filteredPrescriptions.length > 0 && (
           <div>
             <h2 className="text-xl font-bold mb-4 flex items-center space-x-2">
@@ -410,6 +468,7 @@ export default function Prescriptions() {
                   <thead>
                     <tr className="border-b border-white/10">
                       <th className="text-left py-3 px-4">Patient</th>
+                      <th className="text-left py-3 px-4">Doctor</th>
                       <th className="text-left py-3 px-4">Date</th>
                       <th className="text-left py-3 px-4">Diagnosis</th>
                       <th className="text-left py-3 px-4">Medicines</th>
@@ -426,6 +485,7 @@ export default function Prescriptions() {
                             <p className="text-sm text-slate-400">{prescription.patientPhone}</p>
                           </div>
                         </td>
+                        <td className="py-3 px-4 text-slate-300">{prescription.doctorName}</td>
                         <td className="py-3 px-4 text-slate-300">{prescription.prescriptionDate}</td>
                         <td className="py-3 px-4 text-slate-300">{prescription.diagnosis || 'N/A'}</td>
                         <td className="py-3 px-4 text-slate-300">{prescription.medicines?.length || 0} medicines</td>
@@ -438,22 +498,17 @@ export default function Prescriptions() {
                         <td className="py-3 px-4">
                           <div className="flex space-x-2">
                             <Link
-                              to={`/doctor/prescriptions/view/${prescription.id}`}
+                              to={`/receptionist/prescriptions/view/${prescription.id}`}
                               className="px-2 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded text-xs transition-colors"
                             >
                               View
                             </Link>
-                            <Link
-                              to={`/doctor/prescriptions/edit/${prescription.id}`}
-                              className="px-2 py-1 bg-yellow-500 hover:bg-yellow-600 text-white rounded text-xs transition-colors"
-                            >
-                              Edit
-                            </Link>
+                            
                             <button
-                              onClick={() => handleDeletePrescription(prescription.id)}
-                              className="px-2 py-1 bg-red-500 hover:bg-red-600 text-white rounded text-xs transition-colors"
+                              onClick={() => handleDownloadPDF(prescription)}
+                              className="px-2 py-1 bg-green-500 hover:bg-green-600 text-white rounded text-xs transition-colors"
                             >
-                              Delete
+                              PDF
                             </button>
                           </div>
                         </td>

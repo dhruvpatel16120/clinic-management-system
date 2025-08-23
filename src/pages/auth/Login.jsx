@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { FaHospital, FaEnvelope, FaLock, FaEye, FaEyeSlash, FaArrowRight, FaStar, FaShieldHalved, FaUserDoctor, FaUserTie } from 'react-icons/fa6'
-import { useAuth } from '../hooks/useAuth'
-import { fetchUserRoleFromFirestore } from '../utils/authUtils'
+import { useAuth } from '../../hooks/useAuth'
+import { fetchUserRoleFromFirestore } from '../../utils/authUtils'
 
 export default function Login() {
   const navigate = useNavigate()

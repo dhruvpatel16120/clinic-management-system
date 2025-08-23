@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
-import { useAuth } from '../../hooks/useAuth'
+import { useAuth } from '../../../hooks/useAuth'
 import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import LogoutButton from '../../components/LogoutButton'
+import LogoutButton from '../../../components/LogoutButton'
 import { 
   Bell, 
   Plus, 
@@ -19,8 +19,8 @@ import {
   AlertTriangle,
   ArrowLeft
 } from 'lucide-react'
-import { collection, addDoc, updateDoc, doc, deleteDoc, onSnapshot, query, orderBy, where } from 'firebase/firestore'
-import { db } from '../../firebase/config'
+import { collection, addDoc, updateDoc, doc, onSnapshot, query, orderBy, where } from 'firebase/firestore'
+import { db } from '../../../firebase/config'
 
 export default function Appointments() {
   const { currentUser } = useAuth()
@@ -235,18 +235,7 @@ export default function Appointments() {
     toast.success('Appointment opened for rescheduling!')
   }
 
-  const handleDeleteAppointment = async (appointmentId) => {
-    if (window.confirm('Are you sure you want to delete this appointment? This action cannot be undone.')) {
-      try {
-        const appointmentRef = doc(db, 'appointments', appointmentId)
-        await deleteDoc(appointmentRef)
-        toast.success('Appointment deleted successfully!')
-      } catch (error) {
-        console.error('Error deleting appointment:', error)
-        toast.error(`Error deleting appointment: ${error.message}`)
-      }
-    }
-  }
+
 
   const filteredAppointments = appointments.filter(appointment => {
     const matchesSearch = appointment.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||

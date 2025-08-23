@@ -16,6 +16,16 @@ service cloud.firestore {
       allow read, write: if request.auth != null;
     }
     
+    // Allow authenticated users to read and write to prescriptions collection
+    match /prescriptions/{document} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Allow authenticated users to read and write to medicines collection
+    match /medicines/{document} {
+      allow read, write: if request.auth != null;
+    }
+    
     // Default rule - deny all other access
     match /{document=**} {
       allow read, write: if false;

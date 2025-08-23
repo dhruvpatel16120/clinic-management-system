@@ -30,6 +30,8 @@
   "dependencies": {
     "dotenv": "^17.2.1",
     "firebase": "^12.1.0",
+    "jspdf": "^2.5.1",
+    "jspdf-autotable": "^3.8.1",
     "lucide-react": "^0.541.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",

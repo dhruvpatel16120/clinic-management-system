@@ -1,8 +1,8 @@
-import { useAuth } from '../hooks/useAuth'
+import { useAuth } from '../../hooks/useAuth'
 import { Link } from 'react-router-dom'
-import LogoutButton from '../components/LogoutButton'
-import EmailVerificationStatus from '../components/EmailVerificationStatus'
-import { FaUserDoctor, FaCalendar, FaUserInjured, FaPills, FaCalendarDay } from 'react-icons/fa6'
+import LogoutButton from '../../components/LogoutButton'
+import EmailVerificationStatus from '../../components/EmailVerificationStatus'
+import { FaUserDoctor, FaCalendar, FaUserInjured, FaPills, FaCalendarDay, FaFileLines, FaPlus } from 'react-icons/fa6'
 
 export default function Doctor() {
   const { currentUser, userRole } = useAuth()
@@ -35,7 +35,7 @@ export default function Doctor() {
                 <FaCalendar className="w-6 h-6 text-blue-400" />
                 <h3 className="text-lg font-semibold">Today's Appointments</h3>
               </div>
-                             <FaCalendarDay className="w-4 h-4 text-blue-400" />
+              <FaCalendarDay className="w-4 h-4 text-blue-400" />
             </div>
             <p className="text-3xl font-bold text-blue-400">12</p>
             <p className="text-sm text-slate-400 mt-2">+2 from yesterday</p>
@@ -51,13 +51,63 @@ export default function Doctor() {
             <p className="text-sm text-slate-400 mt-2">Currently in treatment</p>
           </div>
 
-          <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-xl">
-            <div className="flex items-center space-x-3 mb-4">
-              <FaPills className="w-6 h-6 text-purple-400" />
-              <h3 className="text-lg font-semibold">Prescriptions</h3>
+          <Link to="/doctor/prescriptions" className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-xl hover:bg-white/10 transition-colors cursor-pointer">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center space-x-3">
+                <FaPills className="w-6 h-6 text-purple-400" />
+                <h3 className="text-lg font-semibold">Prescriptions</h3>
+              </div>
+              <FaFileLines className="w-4 h-4 text-purple-400" />
             </div>
             <p className="text-3xl font-bold text-purple-400">15</p>
             <p className="text-sm text-slate-400 mt-2">This week</p>
+            <p className="text-xs text-purple-400 mt-2">Click to manage prescriptions →</p>
+          </Link>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="mt-8">
+          <h2 className="text-xl font-bold mb-4">Quick Actions</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Link to="/doctor/appointments" className="bg-white/5 border border-white/10 rounded-xl p-4 hover:bg-white/10 transition-colors">
+              <div className="flex items-center space-x-3">
+                <FaCalendar className="w-5 h-5 text-blue-400" />
+                <div>
+                  <h3 className="font-semibold">View Appointments</h3>
+                  <p className="text-sm text-slate-400">Manage patient appointments</p>
+                </div>
+              </div>
+            </Link>
+
+            <Link to="/doctor/prescriptions/create" className="bg-white/5 border border-white/10 rounded-xl p-4 hover:bg-white/10 transition-colors">
+              <div className="flex items-center space-x-3">
+                <FaPlus className="w-5 h-5 text-green-400" />
+                <div>
+                  <h3 className="font-semibold">New Prescription</h3>
+                  <p className="text-sm text-slate-400">Create prescription for patient</p>
+                </div>
+              </div>
+            </Link>
+
+            <Link to="/doctor/prescriptions" className="bg-white/5 border border-white/10 rounded-xl p-4 hover:bg-white/10 transition-colors">
+              <div className="flex items-center space-x-3">
+                <FaFileLines className="w-5 h-5 text-purple-400" />
+                <div>
+                  <h3 className="font-semibold">View Prescriptions</h3>
+                  <p className="text-sm text-slate-400">Manage all prescriptions</p>
+                </div>
+              </div>
+            </Link>
+
+            <Link to="/doctor/prescriptions/medicines" className="bg-white/5 border border-white/10 rounded-xl p-4 hover:bg-white/10 transition-colors">
+              <div className="flex items-center space-x-3">
+                <FaPills className="w-5 h-5 text-yellow-400" />
+                <div>
+                  <h3 className="font-semibold">Manage Medicines</h3>
+                  <p className="text-sm text-slate-400">Add/edit medicine inventory</p>
+                </div>
+              </div>
+            </Link>
           </div>
         </div>
 
@@ -77,7 +127,7 @@ export default function Doctor() {
               <p className="text-slate-400 text-sm">Full Name</p>
               <p className="text-white font-medium">{currentUser?.displayName}</p>
             </div>
-                        <div>
+            <div>
               <p className="text-slate-400 text-sm">Email Verified</p>
               <EmailVerificationStatus />
             </div>

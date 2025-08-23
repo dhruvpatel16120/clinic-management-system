@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useAuth } from '../../../hooks/useAuth'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import LogoutButton from '../../../components/LogoutButton'
 import { 
@@ -20,19 +20,26 @@ import {
   CheckCircle,
   X
 } from 'lucide-react'
-import { collection, addDoc, onSnapshot, query, orderBy, where, getDocs } from 'firebase/firestore'
+import { collection, addDoc, onSnapshot, query, orderBy, getDocs, doc, getDoc, updateDoc } from 'firebase/firestore'
 import { db } from '../../../firebase/config'
 
 export default function CreatePrescription() {
   const { currentUser } = useAuth()
   const navigate = useNavigate()
+  const { id } = useParams()
+  const medicineDropdownRef = useRef(null)
   const [loading, setLoading] = useState(false)
+  const [initialLoading, setInitialLoading] = useState(false)
+  const [isEditMode, setIsEditMode] = useState(false)
   const [patients, setPatients] = useState([])
   const [medicines, setMedicines] = useState([])
   const [filteredMedicines, setFilteredMedicines] = useState([])
-  const [showMedicineDropdown, setShowMedicineDropdown] = useState(false)
-  const [selectedPatient, setSelectedPatient] = useState(null)
+    const [showMedicineDropdown, setShowMedicineDropdown] = useState(false)
+  const [showPatientModal, setShowPatientModal] = useState(false)
+
   const [searchTerm, setSearchTerm] = useState('')
+  const [patientSearchTerm, setPatientSearchTerm] = useState('')
+  const [filteredPatients, setFilteredPatients] = useState([])
 
   const [formData, setFormData] = useState({
     patientId: '',
@@ -50,6 +57,58 @@ export default function CreatePrescription() {
     status: 'active',
     notes: ''
   })
+
+  // Fetch prescription data for editing
+  const fetchPrescriptionData = useCallback(async () => {
+    if (!id) return
+    
+    setInitialLoading(true)
+    try {
+      const prescriptionRef = doc(db, 'prescriptions', id)
+      const prescriptionSnap = await getDoc(prescriptionRef)
+      
+      if (prescriptionSnap.exists()) {
+        const prescriptionData = prescriptionSnap.data()
+        
+        // Set form data
+        setFormData({
+          patientId: prescriptionData.patientId || '',
+          patientName: prescriptionData.patientName || '',
+          patientAge: prescriptionData.patientAge || '',
+          patientGender: prescriptionData.patientGender || '',
+          patientPhone: prescriptionData.patientPhone || '',
+          patientEmail: prescriptionData.patientEmail || '',
+          prescriptionDate: prescriptionData.prescriptionDate || new Date().toISOString().split('T')[0],
+          diagnosis: prescriptionData.diagnosis || '',
+          symptoms: prescriptionData.symptoms || '',
+          medicines: prescriptionData.medicines || [],
+          instructions: prescriptionData.instructions || '',
+          followUpDate: prescriptionData.followUpDate || '',
+          status: prescriptionData.status || 'active',
+          notes: prescriptionData.notes || ''
+        })
+
+        toast.success('Prescription data loaded successfully')
+      } else {
+        toast.error('Prescription not found')
+        navigate('/doctor/prescriptions')
+      }
+    } catch (error) {
+      console.error('Error fetching prescription:', error)
+      toast.error('Error loading prescription data')
+      navigate('/doctor/prescriptions')
+    } finally {
+      setInitialLoading(false)
+    }
+  }, [id, navigate])
+
+  // Check if we're in edit mode
+  useEffect(() => {
+    if (id) {
+      setIsEditMode(true)
+      fetchPrescriptionData()
+    }
+  }, [id, fetchPrescriptionData])
 
   // Fetch patients and medicines
   useEffect(() => {
@@ -82,6 +141,7 @@ export default function CreatePrescription() {
         })
         
         setPatients(uniquePatients)
+        setFilteredPatients(uniquePatients)
 
         // Fetch medicines
         const medicinesRef = collection(db, 'medicines')
@@ -119,8 +179,47 @@ export default function CreatePrescription() {
     }
   }, [searchTerm, medicines])
 
+  // Filter patients based on search
+  useEffect(() => {
+    if (patientSearchTerm) {
+      const filtered = patients.filter(patient =>
+        patient.name.toLowerCase().includes(patientSearchTerm.toLowerCase()) ||
+        patient.phone.includes(patientSearchTerm) ||
+        patient.email.toLowerCase().includes(patientSearchTerm.toLowerCase())
+      )
+      setFilteredPatients(filtered)
+    } else {
+      setFilteredPatients(patients)
+    }
+  }, [patientSearchTerm, patients])
+
+  // Handle click outside medicine dropdown
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (medicineDropdownRef.current && !medicineDropdownRef.current.contains(event.target)) {
+        setShowMedicineDropdown(false)
+        setSearchTerm('')
+      }
+    }
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setShowMedicineDropdown(false)
+        setShowPatientModal(false)
+        setSearchTerm('')
+        setPatientSearchTerm('')
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [])
+
   const handlePatientSelect = (patient) => {
-    setSelectedPatient(patient)
     setFormData(prev => ({
       ...prev,
       patientId: patient.id,
@@ -130,6 +229,8 @@ export default function CreatePrescription() {
       patientPhone: patient.phone,
       patientEmail: patient.email
     }))
+    setShowPatientModal(false)
+    setPatientSearchTerm('')
     toast.success(`Selected patient: ${patient.name}`)
   }
 
@@ -228,31 +329,31 @@ export default function CreatePrescription() {
         ...formData,
         doctorName: currentUser.displayName || 'Unknown Doctor',
         doctorId: currentUser.uid,
-        createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       }
+
+      if (isEditMode) {
+        // Update existing prescription
+        const prescriptionRef = doc(db, 'prescriptions', id)
+        await updateDoc(prescriptionRef, prescriptionData)
+        toast.success('Prescription updated successfully!')
+      } else {
+        // Create new prescription
+        prescriptionData.createdAt = new Date().toISOString()
+        await addDoc(collection(db, 'prescriptions'), prescriptionData)
+        toast.success('Prescription created successfully!')
+      }
       
-      await addDoc(collection(db, 'prescriptions'), prescriptionData)
-      toast.success('Prescription created successfully!')
       navigate('/doctor/prescriptions')
     } catch (error) {
-      console.error('Error creating prescription:', error)
-      toast.error(`Error creating prescription: ${error.message}`)
+      console.error('Error saving prescription:', error)
+      toast.error(`Error saving prescription: ${error.message}`)
     } finally {
       setLoading(false)
     }
   }
 
-  const getTimingLabel = (timing) => {
-    switch (timing) {
-      case 'before_meal': return 'Before Meal'
-      case 'after_meal': return 'After Meal'
-      case 'empty_stomach': return 'Empty Stomach'
-      case 'bedtime': return 'Bedtime'
-      case 'as_needed': return 'As Needed'
-      default: return timing
-    }
-  }
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 text-white">
@@ -270,18 +371,28 @@ export default function CreatePrescription() {
             <div className="w-10 h-10 bg-green-500/20 rounded-xl flex items-center justify-center">
               <FileText className="w-6 h-6 text-green-400" />
             </div>
-            <div>
-              <h1 className="text-xl font-bold">Create Prescription</h1>
-              <p className="text-sm text-slate-400">Write a new prescription for patient</p>
-            </div>
+                         <div>
+               <h1 className="text-xl font-bold">{isEditMode ? 'Edit Prescription' : 'Create Prescription'}</h1>
+               <p className="text-sm text-slate-400">
+                 {isEditMode ? 'Update prescription details' : 'Write a new prescription for patient'}
+               </p>
+             </div>
           </div>
           <LogoutButton />
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="max-w-4xl mx-auto p-6">
-        <form onSubmit={handleSubmit} className="space-y-6">
+             {/* Main Content */}
+       <main className="max-w-4xl mx-auto p-6">
+         {initialLoading ? (
+           <div className="flex items-center justify-center min-h-96">
+             <div className="text-center">
+               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400 mx-auto mb-4"></div>
+               <p className="text-slate-400">Loading prescription data...</p>
+             </div>
+           </div>
+         ) : (
+           <form onSubmit={handleSubmit} className="space-y-6">
           {/* Patient Selection */}
           <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-xl">
             <h2 className="text-lg font-semibold mb-4 flex items-center space-x-2">
@@ -289,46 +400,28 @@ export default function CreatePrescription() {
               <span>Patient Information</span>
             </h2>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">Select Patient</label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="Search patients..."
-                    value={formData.patientName}
-                    onChange={(e) => setFormData(prev => ({ ...prev, patientName: e.target.value }))}
-                    className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:border-blue-400 focus:outline-none"
-                    readOnly
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowMedicineDropdown(!showMedicineDropdown)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
-                  >
-                    <Search className="w-4 h-4" />
-                  </button>
-                </div>
-                
-                {showMedicineDropdown && (
-                  <div className="absolute z-10 w-full mt-1 bg-slate-800 border border-white/10 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                    {patients.map((patient) => (
-                      <button
-                        key={patient.id}
-                        type="button"
-                        onClick={() => handlePatientSelect(patient)}
-                        className="w-full px-4 py-3 text-left hover:bg-white/10 border-b border-white/5 last:border-b-0"
-                      >
-                        <div className="font-medium">{patient.name}</div>
-                        <div className="text-sm text-slate-400">
-                          {patient.age} years, {patient.gender} • {patient.phone}
-                        </div>
-                        <div className="text-xs text-slate-500">Last visit: {patient.lastVisit}</div>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+               <div>
+                 <label className="block text-sm font-medium text-slate-300 mb-2">Select Patient</label>
+                 <div className="flex space-x-2">
+                   <input
+                     type="text"
+                     placeholder="Click to select a patient..."
+                     value={formData.patientName}
+                     readOnly
+                     className="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:border-blue-400 focus:outline-none cursor-pointer"
+                     onClick={() => setShowPatientModal(true)}
+                   />
+                   <button
+                     type="button"
+                     onClick={() => setShowPatientModal(true)}
+                     className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors flex items-center space-x-2"
+                   >
+                     <Search className="w-4 h-4" />
+                     <span>Select</span>
+                   </button>
+                 </div>
+               </div>
               
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">Prescription Date</label>
@@ -353,16 +446,16 @@ export default function CreatePrescription() {
               
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">Patient Gender</label>
-                <select
-                  value={formData.patientGender}
-                  onChange={(e) => setFormData(prev => ({ ...prev, patientGender: e.target.value }))}
-                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:border-blue-400 focus:outline-none"
-                >
-                  <option value="">Select Gender</option>
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                  <option value="Other">Other</option>
-                </select>
+                                  <select
+                    value={formData.patientGender}
+                    onChange={(e) => setFormData(prev => ({ ...prev, patientGender: e.target.value }))}
+                    className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:border-blue-400 focus:outline-none"
+                  >
+                    <option value="" className="text-black">Select Gender</option>
+                    <option value="Male" className="text-black">Male</option>
+                    <option value="Female" className="text-black">Female</option>
+                    <option value="Other" className="text-black">Other</option>
+                  </select>
               </div>
               
               <div>
@@ -441,38 +534,47 @@ export default function CreatePrescription() {
             
             {/* Medicine Search Dropdown */}
             {showMedicineDropdown && (
-              <div className="mb-4">
+              <div className="mb-4" ref={medicineDropdownRef}>
                 <div className="relative">
                   <input
                     type="text"
                     placeholder="Search medicines..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onClick={(e) => e.stopPropagation()}
                     className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:border-blue-400 focus:outline-none"
+                    autoFocus
                   />
                 </div>
                 
-                <div className="mt-2 max-h-60 overflow-y-auto bg-slate-800 border border-white/10 rounded-lg">
-                  {filteredMedicines.map((medicine) => (
-                    <button
-                      key={medicine.id}
-                      type="button"
-                      onClick={() => handleAddMedicine(medicine)}
-                      className="w-full px-4 py-3 text-left hover:bg-white/10 border-b border-white/5 last:border-b-0"
-                    >
-                      <div className="font-medium">{medicine.name}</div>
-                      <div className="text-sm text-slate-400">
-                        {medicine.category} • {medicine.strength} • {medicine.form}
-                      </div>
-                    </button>
-                  ))}
+                <div className="mt-2 max-h-60 overflow-y-auto bg-slate-800 border border-white/10 rounded-lg shadow-xl">
+                  {filteredMedicines.length > 0 ? (
+                    filteredMedicines.map((medicine) => (
+                      <button
+                        key={medicine.id}
+                        type="button"
+                        onClick={() => handleAddMedicine(medicine)}
+                        className="w-full px-4 py-3 text-left hover:bg-white/10 border-b border-white/5 last:border-b-0 text-white"
+                      >
+                        <div className="font-medium text-white">{medicine.name}</div>
+                        <div className="text-sm text-slate-400">
+                          {medicine.category} • {medicine.strength} • {medicine.form}
+                        </div>
+                      </button>
+                    ))
+                  ) : (
+                    <div className="px-4 py-3 text-slate-400 text-center">
+                      {searchTerm ? 'No medicines found matching your search.' : 'No medicines available. Add medicines first.'}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
             
-            {/* Added Medicines */}
-            <div className="space-y-4">
-              {formData.medicines.map((medicine, index) => (
+                         {/* Added Medicines */}
+             <div className="space-y-4">
+               {formData.medicines.map((medicine) => (
                 <div key={medicine.id} className="bg-white/5 border border-white/10 rounded-lg p-4">
                   <div className="flex justify-between items-start mb-3">
                     <div>
@@ -529,11 +631,11 @@ export default function CreatePrescription() {
                         onChange={(e) => handleMedicineChange(medicine.id, 'timing', e.target.value)}
                         className="w-full px-2 py-1 bg-white/5 border border-white/10 rounded text-white focus:border-blue-400 focus:outline-none text-sm"
                       >
-                        <option value="after_meal">After Meal</option>
-                        <option value="before_meal">Before Meal</option>
-                        <option value="empty_stomach">Empty Stomach</option>
-                        <option value="bedtime">Bedtime</option>
-                        <option value="as_needed">As Needed</option>
+                        <option value="after_meal" className="text-black">After Meal</option>
+                        <option value="before_meal" className="text-black">Before Meal</option>
+                        <option value="empty_stomach" className="text-black">Empty Stomach</option>
+                        <option value="bedtime" className="text-black">Bedtime</option>
+                        <option value="as_needed" className="text-black">As Needed</option>
                       </select>
                     </div>
                   </div>
@@ -590,10 +692,10 @@ export default function CreatePrescription() {
                     onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value }))}
                     className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:border-blue-400 focus:outline-none"
                   >
-                    <option value="active">Active</option>
-                    <option value="completed">Completed</option>
-                    <option value="discontinued">Discontinued</option>
-                    <option value="pending">Pending</option>
+                    <option value="active" className="text-black">Active</option>
+                    <option value="completed" className="text-black">Completed</option>
+                    <option value="discontinued" className="text-black">Discontinued</option>
+                    <option value="pending" className="text-black">Pending</option>
                   </select>
                 </div>
               </div>
@@ -629,11 +731,98 @@ export default function CreatePrescription() {
               ) : (
                 <Save className="w-4 h-4" />
               )}
-              <span>{loading ? 'Creating...' : 'Create Prescription'}</span>
+                             <span>{loading ? (isEditMode ? 'Updating...' : 'Creating...') : (isEditMode ? 'Update Prescription' : 'Create Prescription')}</span>
             </button>
-          </div>
-        </form>
-      </main>
-    </div>
-  )
-}
+                     </div>
+           </form>
+         )}
+       </main>
+
+       {/* Patient Selection Modal */}
+       {showPatientModal && (
+         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+           <div className="bg-slate-800 border border-white/10 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden">
+             {/* Modal Header */}
+             <div className="flex justify-between items-center p-6 border-b border-white/10">
+               <h2 className="text-xl font-bold text-white">Select Patient</h2>
+               <button
+                 onClick={() => {
+                   setShowPatientModal(false)
+                   setPatientSearchTerm('')
+                 }}
+                 className="text-slate-400 hover:text-white transition-colors"
+               >
+                 <X className="w-6 h-6" />
+               </button>
+             </div>
+
+             {/* Search Input */}
+             <div className="p-6 border-b border-white/10">
+               <input
+                 type="text"
+                 placeholder="Search patients by name, phone, or email..."
+                 value={patientSearchTerm}
+                 onChange={(e) => setPatientSearchTerm(e.target.value)}
+                 className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-slate-400 focus:border-blue-400 focus:outline-none"
+                 autoFocus
+               />
+             </div>
+
+             {/* Patient List */}
+             <div className="flex-1 overflow-y-auto max-h-96">
+               {filteredPatients.length > 0 ? (
+                 filteredPatients.map((patient) => (
+                   <button
+                     key={patient.id}
+                     onClick={() => handlePatientSelect(patient)}
+                     className="w-full p-4 text-left hover:bg-white/10 border-b border-white/5 last:border-b-0 transition-colors"
+                   >
+                     <div className="flex justify-between items-start">
+                       <div className="flex-1">
+                         <div className="font-medium text-white text-lg">{patient.name}</div>
+                         <div className="text-slate-400 mt-1">
+                           {patient.age} years, {patient.gender} • {patient.phone}
+                         </div>
+                         {patient.email && (
+                           <div className="text-slate-500 text-sm mt-1">{patient.email}</div>
+                         )}
+                         <div className="text-slate-500 text-sm mt-1">
+                           Last visit: {patient.lastVisit}
+                         </div>
+                       </div>
+                       <div className="text-blue-400">
+                         <User className="w-5 h-5" />
+                       </div>
+                     </div>
+                   </button>
+                 ))
+               ) : (
+                 <div className="p-8 text-center">
+                   <div className="text-slate-400 text-lg mb-2">
+                     {patientSearchTerm ? 'No patients found matching your search.' : 'No patients available.'}
+                   </div>
+                   <div className="text-slate-500 text-sm">
+                     {patientSearchTerm ? 'Try a different search term.' : 'Create appointments first to see patients here.'}
+                   </div>
+                 </div>
+               )}
+             </div>
+
+             {/* Modal Footer */}
+             <div className="p-6 border-t border-white/10 flex justify-end">
+               <button
+                 onClick={() => {
+                   setShowPatientModal(false)
+                   setPatientSearchTerm('')
+                 }}
+                 className="px-6 py-2 border border-white/20 text-white rounded-lg hover:bg-white/10 transition-colors"
+               >
+                 Cancel
+               </button>
+             </div>
+           </div>
+         </div>
+       )}
+     </div>
+   )
+ }

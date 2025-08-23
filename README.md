@@ -134,6 +134,15 @@ The application will be available at `http://localhost:5173`
 This application is deployed on **Vercel** and is live at:
 **[life-clinic-management-system.vercel.app](https://life-clinic-management-system.vercel.app)**
 
+# project structure
+```
+# auth folder ( for all auth system files)
+src/pages/auth/
+├── Login.jsx ✅
+├── Signup.jsx ✅
+├── ForgotPasswordForm.jsx ✅
+└── VerifyEmail.jsx ✅
+```
 ### Deployment Status
 [![Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/your-username/life-clinic-management-system)
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/your-username/life-clinic-management-system)

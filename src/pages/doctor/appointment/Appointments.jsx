@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
-import { useAuth } from '../../hooks/useAuth'
+import { useAuth } from '../../../hooks/useAuth'
 import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import LogoutButton from '../../components/LogoutButton'
+import LogoutButton from '../../../components/LogoutButton'
 import { 
   User, 
   Calendar, 
@@ -18,19 +18,19 @@ import {
   CalendarCheck,
   ArrowLeft
 } from 'lucide-react'
-import { collection, onSnapshot, query, orderBy, where, updateDoc, doc, getDoc } from 'firebase/firestore'
-import { db } from '../../firebase/config'
+import { collection, onSnapshot, query, orderBy, updateDoc, doc, getDoc } from 'firebase/firestore'
+import { db } from '../../../firebase/config'
 
 export default function DoctorAppointments() {
-  const { currentUser, userRole } = useAuth()
+  const { currentUser } = useAuth()
   const [appointments, setAppointments] = useState([])
   const [filteredAppointments, setFilteredAppointments] = useState([])
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
   const [viewMode, setViewMode] = useState('today') // today, week, month
   const [searchTerm, setSearchTerm] = useState('')
-  const [selectedAppointment, setSelectedAppointment] = useState(null)
+      const [selectedAppointment, setSelectedAppointment] = useState(null)
   const [showPatientDetails, setShowPatientDetails] = useState(false)
-  const [loading, setLoading] = useState(false)
+
   const [doctorName, setDoctorName] = useState('')
 
   // Fetch doctor's name from staffData collection
@@ -181,7 +181,6 @@ export default function DoctorAppointments() {
   }
 
   const handleCompleteAppointment = async (appointmentId) => {
-    setLoading(true)
     try {
       const appointmentRef = doc(db, 'appointments', appointmentId)
       await updateDoc(appointmentRef, {
@@ -192,13 +191,10 @@ export default function DoctorAppointments() {
     } catch (error) {
       console.error('Error completing appointment:', error)
       toast.error(`Error completing appointment: ${error.message}`)
-    } finally {
-      setLoading(false)
     }
   }
 
   const handleCancelAppointment = async (appointmentId) => {
-    setLoading(true)
     try {
       const appointmentRef = doc(db, 'appointments', appointmentId)
       await updateDoc(appointmentRef, {
@@ -209,8 +205,6 @@ export default function DoctorAppointments() {
     } catch (error) {
       console.error('Error cancelling appointment:', error)
       toast.error(`Error cancelling appointment: ${error.message}`)
-    } finally {
-      setLoading(false)
     }
   }
 
