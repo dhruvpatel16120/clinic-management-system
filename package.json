@@ -1,7 +1,25 @@
 {
-  "name": "cms",
+  "name": "life-clinic-management-system",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
+  "description": "A modern, secure clinic management system built with React, Firebase, and Tailwind CSS",
+  "homepage": "https://life-clinic-management-system.vercel.app",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/life-clinic-management-system.git"
+  },
+  "keywords": [
+    "clinic",
+    "management",
+    "healthcare",
+    "react",
+    "firebase",
+    "tailwindcss",
+    "authentication",
+    "role-based-access"
+  ],
+  "author": "Dhruv Patel",
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "vite",

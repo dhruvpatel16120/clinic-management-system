@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 
 export default function Home() {
   const navigate = useNavigate()
-  const appName = import.meta.env.VITE_APP_NAME || 'Clinic Management System'
+  const appName = import.meta.env.VITE_APP_NAME || 'Life Clinic Management System'
   const redirectDelay = Number(import.meta.env.VITE_REDIRECT_DELAY_MS || 5000)
 
   useEffect(() => {

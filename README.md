@@ -1,6 +1,19 @@
 # Clinic Management System
 
-A modern, secure clinic management system built with React, Firebase, and Tailwind CSS.
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Visit%20Site-blue?style=for-the-badge)](https://life-clinic-management-system.vercel.app)
+[![Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com)
+
+> 🚀 **Live Application**: [life-clinic-management-system.vercel.app](https://life-clinic-management-system.vercel.app)
+
+A modern, secure clinic management system built with React, Firebase, and Tailwind CSS. Streamline your healthcare operations with role-based access control and comprehensive patient management.
+
+## 🌟 Live Demo
+
+Experience the application live at: **[life-clinic-management-system.vercel.app](https://life-clinic-management-system.vercel.app)**
+
+### Test Accounts
+- **Doctor**: Create a new account with Doctor role
+- **Receptionist**: Create a new account with Receptionist role
 
 ## Features
 
@@ -46,7 +59,7 @@ npm install
 
 ### 3. Environment Configuration
 
-1. Copy `.env.example` to `.env`:
+1. Copy `env.example.txt` to `.env`:
    ```bash
    cp env.example.txt .env
    ```
@@ -83,6 +96,37 @@ npm run dev
 ```
 
 The application will be available at `http://localhost:5173`
+
+## 🌐 Deployment
+
+This application is deployed on **Vercel** and is live at:
+**[life-clinic-management-system.vercel.app](https://life-clinic-management-system.vercel.app)**
+
+### Deployment Status
+[![Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/your-username/life-clinic-management-system)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/your-username/life-clinic-management-system)
+
+**Current Status**: ✅ **Live and Running**
+**Last Deployed**: Today
+**Environment**: Production
+
+### Deploy Your Own
+
+1. **Fork this repository**
+2. **Connect to Vercel**:
+   - Go to [vercel.com](https://vercel.com)
+   - Import your forked repository
+   - Configure environment variables in Vercel dashboard
+3. **Set Environment Variables** in Vercel:
+   ```
+   VITE_FIREBASE_API_KEY=your_api_key
+   VITE_FIREBASE_AUTH_DOMAIN=your_domain
+   VITE_FIREBASE_PROJECT_ID=your_project_id
+   VITE_FIREBASE_STORAGE_BUCKET=your_bucket
+   VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+   VITE_FIREBASE_APP_ID=your_app_id
+   ```
+4. **Deploy** - Vercel will automatically deploy your application
 
 ## Project Structure
 
