@@ -11,6 +11,31 @@
 
 A modern, secure, and feature-rich clinic management system built with React 19, Firebase, and Tailwind CSS. Streamline your healthcare operations with comprehensive patient management, appointment scheduling, prescription management, billing systems, and role-based access control.
 
+## 🛠️ Tech Stack
+
+Our clinic management system is built with cutting-edge technologies to ensure performance, security, and scalability:
+
+### **Frontend Technologies**
+![React](https://img.shields.io/badge/React-19.1.1-61DAFB?style=for-the-badge&logo=react)
+![Vite](https://img.shields.io/badge/Vite-7.1.2-646CFF?style=for-the-badge&logo=vite&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4.1.12-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
+![JavaScript](https://img.shields.io/badge/JavaScript-ES6+-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)
+
+### **Backend & Database**
+![Firebase](https://img.shields.io/badge/Firebase-12.1.0-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
+![Firestore](https://img.shields.io/badge/Firestore-NoSQL-FF6B6B?style=for-the-badge&logo=firebase&logoColor=white)
+![Authentication](https://img.shields.io/badge/Firebase_Auth-Secure-FF6B6B?style=for-the-badge&logo=firebase&logoColor=white)
+
+### **Development Tools**
+![ESLint](https://img.shields.io/badge/ESLint-9.33.0-4B32C3?style=for-the-badge&logo=eslint&logoColor=white)
+![PostCSS](https://img.shields.io/badge/PostCSS-8.5.6-DD3A0A?style=for-the-badge&logo=postcss&logoColor=white)
+![Git](https://img.shields.io/badge/Git-F05032?style=for-the-badge&logo=git&logoColor=white)
+![npm](https://img.shields.io/badge/npm-CB3837?style=for-the-badge&logo=npm&logoColor=white)
+
+### **Deployment & Hosting**
+![Vercel](https://img.shields.io/badge/Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white)
+![GitHub](https://img.shields.io/badge/GitHub-100000?style=for-the-badge&logo=github&logoColor=white)
+
 ## ✨ Features
 
 ### 🔐 **Authentication & Security**
@@ -65,7 +90,7 @@ Experience the application live at: **[life-clinic-management-system.vercel.app]
 Here's a comprehensive preview of all the key features and interfaces in the Life Clinic Management System:
 
 | Feature | Preview |
-|---------|---------|
+|:--------:|:-------:|
 | **Authentication** | ![Login Interface](preview/login.png) |
 | **User Registration** | ![Signup Interface](preview/signup.png) |
 | **Doctor Dashboard** | ![Doctor Dashboard](preview/doctor_dashboard.png) |
@@ -102,21 +127,77 @@ npm install
 5. Get your Firebase configuration
 
 ### 3. Environment Configuration
-```bash
-cp env.example.txt .env
-```
+   ```bash
+   cp env.example.txt .env
+   ```
 
 Update `.env` with your Firebase config:
-```env
+   ```env
 VITE_FIREBASE_API_KEY=your_api_key
-VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
-VITE_FIREBASE_PROJECT_ID=your_project_id
-VITE_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
-VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
-VITE_FIREBASE_APP_ID=your_app_id
+   VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+   VITE_FIREBASE_PROJECT_ID=your_project_id
+   VITE_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
+   VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+   VITE_FIREBASE_APP_ID=your_app_id
+   ```
+
+### 4. Firebase Security Rules Configuration
+
+**Important**: You must configure Firestore security rules to ensure proper data access control.
+
+1. **Go to Firestore Database** in your Firebase Console
+2. **Click on "Rules" tab**
+3. **Replace the default rules** with the following:
+
+```javascript
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Staff data access control
+    match /staffData/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Appointments access control
+    match /appointments/{document} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && 
+        (resource == null || resource.data.createdBy == request.auth.uid);
+    }
+    
+    // Prescriptions access control
+    match /prescriptions/{document} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && 
+        (resource == null || resource.data.doctorId == request.auth.uid);
+    }
+    
+    // Medicines access control
+    match /medicines/{document} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+    
+    // Invoices access control
+    match /invoices/{document} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && 
+        (resource == null || resource.data.createdBy == request.auth.uid);
+    }
+  }
+}
 ```
 
-### 4. Run Development Server
+4. **Click "Publish"** to save the rules
+
+**Why These Rules Matter:**
+- **Security**: Prevents unauthorized access to sensitive data
+- **Role-based Access**: Ensures users can only access their own data
+- **Data Protection**: Protects patient information and medical records
+- **Compliance**: Meets healthcare data security requirements
+
+### 5. Run Development Server
 ```bash
 npm run dev
 ```
@@ -176,17 +257,6 @@ src/
 This application is deployed on **Vercel** and is live at:
 **[life-clinic-management-system.vercel.app](https://life-clinic-management-system.vercel.app)**
 
-### Deploy Your Own
-
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/dhruvpatel16120/clinic-management-system)
-
-1. **Fork this repository**
-2. **Connect to Vercel**:
-   - Go to [vercel.com](https://vercel.com)
-   - Import your forked repository
-   - Configure environment variables
-3. **Set Environment Variables** in Vercel dashboard
-4. **Deploy** - Vercel will automatically deploy your application
 
 ## 🔒 Security Features
 
