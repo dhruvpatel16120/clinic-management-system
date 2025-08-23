@@ -258,7 +258,7 @@ export default function DoctorAppointments() {
                <User className="w-6 h-6 text-blue-400" />
              </div>
              <div>
-               <h1 className="text-xl font-bold">My Appointments</h1>
+               <h1 className="text-xl font-bold">Patient Appointments</h1>
                <p className="text-sm text-slate-400">Welcome, {doctorName || 'Doctor'}</p>
              </div>
            </div>

@@ -26,6 +26,26 @@ service cloud.firestore {
       allow read, write: if request.auth != null;
     }
     
+    // Allow authenticated users to read and write to invoices collection
+    match /invoices/{document} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Allow authenticated users to read and write to payments collection
+    match /payments/{document} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Allow authenticated users to read and write to patients collection
+    match /patients/{document} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Allow authenticated users to read and write to services collection
+    match /services/{document} {
+      allow read, write: if request.auth != null;
+    }
+    
     // Default rule - deny all other access
     match /{document=**} {
       allow read, write: if false;

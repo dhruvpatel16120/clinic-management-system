@@ -23,6 +23,15 @@ import TokenManagement from './pages/receptionist/token/TokenManagement'
 import TokenQueue from './pages/doctor/token/TokenQueue'
 import TokenDisplay from './components/TokenDisplay'
 
+// Receptionist Billing Pages
+import BillingDashboard from './pages/receptionist/billing/BillingDashboard'
+import CreateInvoice from './pages/receptionist/billing/CreateInvoice'
+import InvoiceList from './pages/receptionist/billing/InvoiceList'
+import PaymentProcessing from './pages/receptionist/billing/PaymentProcessing'
+import PaymentHistory from './pages/receptionist/billing/PaymentHistory'
+import InvoicePdfGenerator from './pages/receptionist/billing/InvoicePdfGenerator'
+import Reports from './pages/receptionist/billing/Reports'
+
 function App() {
   return (
     <Routes>
@@ -109,6 +118,53 @@ function App() {
           <ReceptionistViewPrescription />
         </ProtectedRoute>
       } />
+      
+      {/* Receptionist Billing Routes */}
+      <Route path="/receptionist/billing" element={
+        <ProtectedRoute requiredRole="receptionist">
+          <BillingDashboard />
+        </ProtectedRoute>
+      } />
+      <Route path="/receptionist/billing/create" element={
+        <ProtectedRoute requiredRole="receptionist">
+          <CreateInvoice />
+        </ProtectedRoute>
+      } />
+      <Route path="/receptionist/billing/invoices" element={
+        <ProtectedRoute requiredRole="receptionist">
+          <InvoiceList />
+        </ProtectedRoute>
+      } />
+      <Route path="/receptionist/billing/payments" element={
+        <ProtectedRoute requiredRole="receptionist">
+          <PaymentProcessing />
+        </ProtectedRoute>
+      } />
+      <Route path="/receptionist/billing/history" element={
+        <ProtectedRoute requiredRole="receptionist">
+          <PaymentHistory />
+        </ProtectedRoute>
+      } />
+      <Route path="/receptionist/billing/invoices/:id" element={
+        <ProtectedRoute requiredRole="receptionist">
+          <InvoicePdfGenerator />
+        </ProtectedRoute>
+      } />
+      <Route path="/receptionist/billing/invoices/:id/download" element={
+        <ProtectedRoute requiredRole="receptionist">
+          <InvoicePdfGenerator />
+        </ProtectedRoute>
+      } />
+              <Route path="/receptionist/billing/invoices/:id/edit" element={
+          <ProtectedRoute requiredRole="receptionist">
+            <CreateInvoice />
+          </ProtectedRoute>
+        } />
+        <Route path="/receptionist/billing/reports" element={
+          <ProtectedRoute requiredRole="receptionist">
+            <Reports />
+          </ProtectedRoute>
+        } />
 
       <Route path="/forgot-password" element={<ForgotPasswordForm />} />
       <Route path="/verify-email" element={<VerifyEmail />} />
