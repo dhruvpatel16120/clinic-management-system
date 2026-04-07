@@ -1,4 +1,4 @@
-export const productName = import.meta.env.VITE_APP_NAME || 'ClinicFlow Cloud'
+export const productName = import.meta.env.VITE_APP_NAME || 'ClinicNova'
 
 export const productTagline =
   'Clinic operations SaaS for independent practices and fast-growing clinics in India.'
@@ -52,7 +52,7 @@ export const trustPillars = [
   },
   {
     title: 'Workspace-based access',
-    body: 'Each clinic gets its own workspace boundary so staff should not see other clinics’ records.'
+    body: "Each clinic gets its own workspace boundary so staff should not see other clinics' records."
   },
   {
     title: 'Compliance-first rollout',

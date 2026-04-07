@@ -1,6 +1,6 @@
-# ClinicFlow Cloud
+# ClinicNova
 
-ClinicFlow Cloud is a tenant-aware clinic operations SaaS built from the original clinic management system repository. This version is positioned for paid clinic subscriptions in India and now includes:
+ClinicNova is a tenant-aware clinic operations SaaS built from the original clinic management system repository. This version is positioned for paid clinic subscriptions in India and now includes:
 
 - clinic workspace creation during signup
 - clinic-scoped Firestore reads and writes
@@ -39,7 +39,7 @@ cp env.example.txt .env
 Important values:
 
 ```env
-VITE_APP_NAME=ClinicFlow Cloud
+VITE_APP_NAME=ClinicNova
 VITE_FIREBASE_API_KEY=...
 VITE_FIREBASE_AUTH_DOMAIN=...
 VITE_FIREBASE_PROJECT_ID=...

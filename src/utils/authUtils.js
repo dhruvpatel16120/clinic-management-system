@@ -14,10 +14,10 @@ function buildActionCodeSettings() {
     url: `${window.location.origin}/login`,
     handleCodeInApp: true,
     iOS: {
-      bundleId: 'com.clinicflow.cloud'
+      bundleId: 'com.clinicnova.app'
     },
     android: {
-      packageName: 'com.clinicflow.cloud',
+      packageName: 'com.clinicnova.app',
       installApp: true,
       minimumVersion: '12'
     },

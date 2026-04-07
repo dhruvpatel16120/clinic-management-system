@@ -2,7 +2,7 @@
 
 ## Product Positioning
 
-ClinicFlow Cloud should be sold as a B2B clinic operations SaaS, not as a custom software project. The cleanest positioning for Saharanpur and nearby districts is:
+ClinicNova should be sold as a B2B clinic operations SaaS, not as a custom software project. The cleanest positioning for Saharanpur and nearby districts is:
 
 - independent single-doctor clinics
 - dental clinics
