@@ -1,6 +1,6 @@
 import { createContext, useEffect, useState } from 'react'
 import { signOut, onAuthStateChanged } from 'firebase/auth'
-import { auth } from '../firebase/config'
+import { auth, firebaseEnabled } from '../firebase/config'
 import {
   createUserWithRole,
   signInUser,
@@ -22,18 +22,34 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
 
   async function signup(payload) {
+    if (!firebaseEnabled) {
+      throw new Error('Firebase is not configured for live workspace creation yet.')
+    }
+
     return await createUserWithRole(payload)
   }
 
   async function login(email, password) {
+    if (!firebaseEnabled) {
+      throw new Error('Firebase is not configured for live sign-in yet.')
+    }
+
     return await signInUser(email, password)
   }
 
   async function logout() {
+    if (!auth) {
+      return null
+    }
+
     await signOut(auth)
   }
 
   async function resetPassword(email) {
+    if (!firebaseEnabled) {
+      throw new Error('Firebase is not configured for password resets yet.')
+    }
+
     return await resetUserPassword(email)
   }
 
@@ -61,6 +77,11 @@ export function AuthProvider({ children }) {
   }
 
   useEffect(() => {
+    if (!auth) {
+      setLoading(false)
+      return undefined
+    }
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setLoading(true)
 
@@ -92,7 +113,8 @@ export function AuthProvider({ children }) {
     resetPassword,
     resendVerificationEmail,
     refreshProfile,
-    loading
+    loading,
+    firebaseEnabled
   }
 
   return (

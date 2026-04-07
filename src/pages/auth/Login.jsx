@@ -7,7 +7,7 @@ import { productName } from '../../data/saasContent'
 
 export default function Login() {
   const navigate = useNavigate()
-  const { login } = useAuth()
+  const { login, firebaseEnabled } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -48,6 +48,8 @@ export default function Login() {
         errorMessage = 'Please enter a valid email address.'
       } else if (authError.code === 'auth/user-disabled') {
         errorMessage = 'This account has been disabled.'
+      } else if (authError.message) {
+        errorMessage = authError.message
       }
 
       setError(errorMessage)
@@ -80,6 +82,12 @@ export default function Login() {
                 Old demo accounts without a workspace will need migration before production use.
               </div>
             </div>
+
+            {!firebaseEnabled ? (
+              <div className="mt-8 rounded-[22px] border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-sm leading-6 text-amber-100">
+                Live workspace sign-in is disabled on this public build until the Firebase project is connected.
+              </div>
+            ) : null}
 
             <div className="mt-8 flex items-center gap-3 text-sm text-slate-300">
               <ShieldCheck className="h-4 w-4 text-cyan-200" />
@@ -143,10 +151,10 @@ export default function Login() {
 
               <button
                 type="submit"
-                disabled={isLoading}
+                disabled={isLoading || !firebaseEnabled}
                 className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-cyan-300 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0"
               >
-                {isLoading ? 'Signing in...' : 'Sign in to workspace'}
+                {isLoading ? 'Signing in...' : firebaseEnabled ? 'Sign in to workspace' : 'Firebase setup required'}
                 <ArrowRight className="h-4 w-4" />
               </button>
             </form>

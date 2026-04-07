@@ -11,16 +11,25 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID
 }
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig)
+const requiredFirebaseKeys = [
+  'apiKey',
+  'authDomain',
+  'projectId',
+  'storageBucket',
+  'messagingSenderId',
+  'appId'
+]
 
-// Initialize Firebase Authentication and get a reference to the service
-export const auth = getAuth(app)
+export const firebaseEnabled = requiredFirebaseKeys.every((key) => Boolean(firebaseConfig[key]))
 
-// Configure auth settings for better email delivery
-auth.settings.appVerificationDisabledForTesting = false
+const app = firebaseEnabled ? initializeApp(firebaseConfig) : null
 
-// Initialize Cloud Firestore and get a reference to the service
-export const db = getFirestore(app)
+export const auth = firebaseEnabled ? getAuth(app) : null
+
+if (auth) {
+  auth.settings.appVerificationDisabledForTesting = false
+}
+
+export const db = firebaseEnabled ? getFirestore(app) : null
 
 export default app

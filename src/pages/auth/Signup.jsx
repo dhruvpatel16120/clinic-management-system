@@ -26,7 +26,7 @@ const businessTypes = [
 
 export default function Signup() {
   const navigate = useNavigate()
-  const { signup } = useAuth()
+  const { signup, firebaseEnabled } = useAuth()
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -126,6 +126,8 @@ export default function Signup() {
         message = 'Password should be at least 6 characters long.'
       } else if (signupError.code === 'auth/invalid-email') {
         message = 'Please enter a valid email address.'
+      } else if (signupError.message) {
+        message = signupError.message
       }
 
       setError(message)
@@ -158,6 +160,12 @@ export default function Signup() {
                 Multi-clinic public rollout should happen only after Firestore migration and contract review.
               </div>
             </div>
+
+            {!firebaseEnabled ? (
+              <div className="mt-8 rounded-[22px] border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-sm leading-6 text-amber-100">
+                Public workspace creation is disabled until the Firebase project and email auth settings are connected.
+              </div>
+            ) : null}
 
             <div className="mt-8 rounded-[28px] border border-cyan-300/20 bg-cyan-300/8 p-6">
               <p className="text-sm font-semibold text-white">Included in this onboarding</p>
@@ -377,10 +385,14 @@ export default function Signup() {
 
               <button
                 type="submit"
-                disabled={isLoading}
+                disabled={isLoading || !firebaseEnabled}
                 className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-cyan-300 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0"
               >
-                {isLoading ? 'Creating workspace...' : 'Create clinic workspace'}
+                {isLoading
+                  ? 'Creating workspace...'
+                  : firebaseEnabled
+                    ? 'Create clinic workspace'
+                    : 'Firebase setup required'}
                 <ArrowRight className="h-4 w-4" />
               </button>
             </form>
