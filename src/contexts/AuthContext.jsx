@@ -6,19 +6,23 @@ import {
   signInUser,
   resetUserPassword,
   resendUserVerificationEmail,
-  fetchUserRoleFromFirestore
+  fetchUserProfileFromFirestore,
+  fetchClinicFromFirestore
 } from '../utils/authUtils'
 
 const AuthContext = createContext()
 
 export { AuthContext }
+
 export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null)
   const [userRole, setUserRole] = useState(null)
+  const [userProfile, setUserProfile] = useState(null)
+  const [clinic, setClinic] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  async function signup(email, password, fullName, role) {
-    return await createUserWithRole(email, password, fullName, role)
+  async function signup(payload) {
+    return await createUserWithRole(payload)
   }
 
   async function login(email, password) {
@@ -37,29 +41,39 @@ export function AuthProvider({ children }) {
     if (currentUser) {
       return await resendUserVerificationEmail(currentUser)
     }
+
+    return null
   }
 
+  async function refreshProfile(uid) {
+    const profile = await fetchUserProfileFromFirestore(uid)
+    setUserProfile(profile)
+    setUserRole(profile?.role || null)
 
-
-  async function fetchUserRole(uid) {
-    try {
-      return await fetchUserRoleFromFirestore(uid)
-    } catch (error) {
-      console.error('Error fetching user role:', error)
-      return null
+    if (profile?.clinicId) {
+      const clinicProfile = await fetchClinicFromFirestore(profile.clinicId)
+      setClinic(clinicProfile)
+    } else {
+      setClinic(null)
     }
+
+    return profile
   }
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      setLoading(true)
+
       if (user) {
         setCurrentUser(user)
-        const role = await fetchUserRole(user.uid)
-        setUserRole(role)
+        await refreshProfile(user.uid)
       } else {
         setCurrentUser(null)
         setUserRole(null)
+        setUserProfile(null)
+        setClinic(null)
       }
+
       setLoading(false)
     })
 
@@ -69,11 +83,15 @@ export function AuthProvider({ children }) {
   const value = {
     currentUser,
     userRole,
+    userProfile,
+    clinic,
+    clinicId: clinic?.id || userProfile?.clinicId || null,
     signup,
     login,
     logout,
     resetPassword,
     resendVerificationEmail,
+    refreshProfile,
     loading
   }
 

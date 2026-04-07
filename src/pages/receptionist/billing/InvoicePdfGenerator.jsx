@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { doc, getDoc } from 'firebase/firestore'
 import { db } from '../../../firebase/config'
+import { useAuth } from '../../../hooks/useAuth'
+import { isClinicScopedRecord } from '../../../utils/tenantScope'
 import { 
   ArrowLeft, 
   Download, 
@@ -20,6 +22,7 @@ import {
 } from 'lucide-react'
 
 export default function InvoicePdfGenerator() {
+  const { clinicId } = useAuth()
   const { id } = useParams()
   const navigate = useNavigate()
   const [invoice, setInvoice] = useState(null)
@@ -31,7 +34,11 @@ export default function InvoicePdfGenerator() {
       try {
         const invoiceDoc = await getDoc(doc(db, 'invoices', id))
         if (invoiceDoc.exists()) {
-          setInvoice({ id: invoiceDoc.id, ...invoiceDoc.data() })
+          const loadedInvoice = invoiceDoc.data()
+          if (!isClinicScopedRecord(loadedInvoice, clinicId)) {
+            throw new Error('Invoice does not belong to this clinic workspace')
+          }
+          setInvoice({ id: invoiceDoc.id, ...loadedInvoice })
         } else {
           alert('Invoice not found')
           navigate('/receptionist/billing')
@@ -47,7 +54,7 @@ export default function InvoicePdfGenerator() {
     if (id) {
       fetchInvoice()
     }
-  }, [id, navigate])
+  }, [clinicId, id, navigate])
 
   // Get status icon and color
   const getStatusIcon = (status) => {

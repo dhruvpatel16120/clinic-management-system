@@ -4,72 +4,44 @@ import { Link } from 'react-router-dom'
 import LogoutButton from '../../components/LogoutButton'
 import EmailVerificationStatus from '../../components/EmailVerificationStatus'
 import { FaUserDoctor, FaCalendar, FaUserInjured, FaPills, FaCalendarDay, FaFileLines, FaPlus, FaHashtag } from 'react-icons/fa6'
-import { collection, query, where, onSnapshot, doc, getDoc } from 'firebase/firestore'
-import { db } from '../../firebase/config'
+import { onSnapshot, where } from 'firebase/firestore'
+import { buildClinicScopedQuery } from '../../utils/tenantScope'
 
 export default function Doctor() {
-  const { currentUser, userRole } = useAuth()
+  const { currentUser, userRole, userProfile, clinic, clinicId } = useAuth()
   const [stats, setStats] = useState({
     todayAppointments: 0,
     waitingPatients: 0,
     weeklyPrescriptions: 0,
     loading: true
   })
-  const [doctorName, setDoctorName] = useState('')
-
-  // Fetch doctor's name from staffData collection
-  useEffect(() => {
-    if (!currentUser) return
-
-    const fetchDoctorName = async () => {
-      try {
-        const userDocRef = doc(db, 'staffData', currentUser.uid)
-        const userDoc = await getDoc(userDocRef)
-        
-        if (userDoc.exists()) {
-          const userData = userDoc.data()
-          const name = userData.fullName || currentUser.displayName || 'Unknown Doctor'
-          setDoctorName(name)
-        } else {
-          setDoctorName(currentUser.displayName || 'Unknown Doctor')
-        }
-      } catch (error) {
-        console.error('Error fetching doctor name:', error)
-        setDoctorName(currentUser.displayName || 'Unknown Doctor')
-      }
-    }
-
-    fetchDoctorName()
-  }, [currentUser])
+  const doctorName = userProfile?.fullName || currentUser?.displayName || 'Unknown Doctor'
 
   // Fetch real-time stats
   useEffect(() => {
-    if (!doctorName) return
+    if (!doctorName || !currentUser || !clinicId) return
 
     const today = new Date().toISOString().split('T')[0]
     const weekStart = new Date()
     weekStart.setDate(weekStart.getDate() - 7)
 
-    // Query for today's appointments
-    const todayAppointmentsRef = collection(db, 'appointments')
-    const todayQuery = query(
-      todayAppointmentsRef,
+    const todayQuery = buildClinicScopedQuery(
+      'appointments',
+      clinicId,
       where('appointmentDate', '==', today),
       where('doctorName', '==', doctorName)
     )
 
-    // Query for waiting patients (tokens generated but not completed)
-    const waitingPatientsRef = collection(db, 'appointments')
-    const waitingQuery = query(
-      waitingPatientsRef,
+    const waitingQuery = buildClinicScopedQuery(
+      'appointments',
+      clinicId,
       where('appointmentDate', '==', today),
       where('doctorName', '==', doctorName)
     )
 
-    // Query for weekly prescriptions
-    const weeklyPrescriptionsRef = collection(db, 'prescriptions')
-    const weeklyQuery = query(
-      weeklyPrescriptionsRef,
+    const weeklyQuery = buildClinicScopedQuery(
+      'prescriptions',
+      clinicId,
       where('doctorId', '==', currentUser.uid)
     )
 
@@ -101,7 +73,7 @@ export default function Doctor() {
       unsubscribeWaiting()
       unsubscribeWeekly()
     }
-  }, [doctorName, currentUser])
+  }, [clinicId, doctorName, currentUser])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 text-white">
@@ -114,7 +86,9 @@ export default function Doctor() {
             </div>
             <div>
               <h1 className="text-xl font-bold">Doctor Dashboard</h1>
-              <p className="text-sm text-slate-400">Welcome, {currentUser?.displayName || 'Doctor'}</p>
+              <p className="text-sm text-slate-400">
+                {clinic?.name ? `${clinic.name} workspace` : `Welcome, ${doctorName}`}
+              </p>
             </div>
           </div>
           <LogoutButton />
@@ -273,7 +247,11 @@ export default function Doctor() {
             </div>
             <div>
               <p className="text-slate-400 text-sm">Full Name</p>
-              <p className="text-white font-medium">{currentUser?.displayName}</p>
+              <p className="text-white font-medium">{doctorName}</p>
+            </div>
+            <div>
+              <p className="text-slate-400 text-sm">Clinic Workspace</p>
+              <p className="text-white font-medium">{clinic?.name || clinicId}</p>
             </div>
             <div>
               <p className="text-slate-400 text-sm">Email Verified</p>
@@ -285,5 +263,4 @@ export default function Doctor() {
     </div>
   )
 }
-
 

@@ -1,52 +1,111 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow authenticated users to read and write to appointments collection
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function currentStaffDoc() {
+      return get(/databases/$(database)/documents/staffData/$(request.auth.uid));
+    }
+
+    function hasWorkspace() {
+      return isSignedIn() && currentStaffDoc().data.clinicId != null;
+    }
+
+    function sameClinic(clinicId) {
+      return hasWorkspace() && currentStaffDoc().data.clinicId == clinicId;
+    }
+
+    function isSelf(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function isClinicOwner() {
+      return hasWorkspace() && currentStaffDoc().data.isClinicOwner == true;
+    }
+
+    function resourceClinicMatches() {
+      return request.resource.data.clinicId == resource.data.clinicId;
+    }
+
+    match /clinics/{clinicId} {
+      allow create: if isSignedIn()
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.id == clinicId;
+
+      allow read: if sameClinic(clinicId);
+      allow update: if sameClinic(clinicId) && isClinicOwner();
+      allow delete: if false;
+    }
+
+    match /staffData/{uid} {
+      allow create: if isSelf(uid) && request.resource.data.uid == uid;
+
+      allow read: if isSelf(uid) || sameClinic(resource.data.clinicId);
+
+      allow update: if (
+          isSelf(uid)
+          && request.resource.data.uid == uid
+          && request.resource.data.clinicId == resource.data.clinicId
+        ) || (
+          sameClinic(resource.data.clinicId)
+          && isClinicOwner()
+          && request.resource.data.clinicId == resource.data.clinicId
+        );
+
+      allow delete: if false;
+    }
+
     match /appointments/{document} {
-      allow read, write: if request.auth != null;
+      allow read: if sameClinic(resource.data.clinicId);
+      allow create: if sameClinic(request.resource.data.clinicId);
+      allow update: if sameClinic(resource.data.clinicId) && resourceClinicMatches();
+      allow delete: if sameClinic(resource.data.clinicId);
     }
-    
-    // Allow authenticated users to read and write to staffData collection
-    match /staffData/{document} {
-      allow read, write: if request.auth != null;
-    }
-    
-    // Allow authenticated users to read and write to test collection (for debugging)
-    match /test/{document} {
-      allow read, write: if request.auth != null;
-    }
-    
-    // Allow authenticated users to read and write to prescriptions collection
+
     match /prescriptions/{document} {
-      allow read, write: if request.auth != null;
+      allow read: if sameClinic(resource.data.clinicId);
+      allow create: if sameClinic(request.resource.data.clinicId);
+      allow update: if sameClinic(resource.data.clinicId) && resourceClinicMatches();
+      allow delete: if sameClinic(resource.data.clinicId);
     }
-    
-    // Allow authenticated users to read and write to medicines collection
+
     match /medicines/{document} {
-      allow read, write: if request.auth != null;
+      allow read: if sameClinic(resource.data.clinicId);
+      allow create: if sameClinic(request.resource.data.clinicId);
+      allow update: if sameClinic(resource.data.clinicId) && resourceClinicMatches();
+      allow delete: if sameClinic(resource.data.clinicId);
     }
-    
-    // Allow authenticated users to read and write to invoices collection
+
     match /invoices/{document} {
-      allow read, write: if request.auth != null;
+      allow read: if sameClinic(resource.data.clinicId);
+      allow create: if sameClinic(request.resource.data.clinicId);
+      allow update: if sameClinic(resource.data.clinicId) && resourceClinicMatches();
+      allow delete: if sameClinic(resource.data.clinicId);
     }
-    
-    // Allow authenticated users to read and write to payments collection
+
     match /payments/{document} {
-      allow read, write: if request.auth != null;
+      allow read: if sameClinic(resource.data.clinicId);
+      allow create: if sameClinic(request.resource.data.clinicId);
+      allow update: if sameClinic(resource.data.clinicId) && resourceClinicMatches();
+      allow delete: if sameClinic(resource.data.clinicId);
     }
-    
-    // Allow authenticated users to read and write to patients collection
+
     match /patients/{document} {
-      allow read, write: if request.auth != null;
+      allow read: if sameClinic(resource.data.clinicId);
+      allow create: if sameClinic(request.resource.data.clinicId);
+      allow update: if sameClinic(resource.data.clinicId) && resourceClinicMatches();
+      allow delete: if sameClinic(resource.data.clinicId);
     }
-    
-    // Allow authenticated users to read and write to services collection
+
     match /services/{document} {
-      allow read, write: if request.auth != null;
+      allow read: if sameClinic(resource.data.clinicId);
+      allow create: if sameClinic(request.resource.data.clinicId);
+      allow update: if sameClinic(resource.data.clinicId) && resourceClinicMatches();
+      allow delete: if sameClinic(resource.data.clinicId);
     }
-    
-    // Default rule - deny all other access
+
     match /{document=**} {
       allow read, write: if false;
     }

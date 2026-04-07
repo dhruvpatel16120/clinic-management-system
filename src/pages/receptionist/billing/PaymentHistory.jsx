@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { collection, onSnapshot, query, orderBy } from 'firebase/firestore'
-import { db } from '../../../firebase/config'
+import { onSnapshot, orderBy } from 'firebase/firestore'
+import { useAuth } from '../../../hooks/useAuth'
+import { buildClinicScopedQuery } from '../../../utils/tenantScope'
 import { 
   ArrowLeft, 
   Search, 
@@ -24,6 +25,7 @@ import {
 } from 'lucide-react'
 
 export default function PaymentHistory() {
+  const { clinicId } = useAuth()
   const [payments, setPayments] = useState([])
   const [filteredPayments, setFilteredPayments] = useState([])
   const [loading, setLoading] = useState(true)
@@ -49,10 +51,11 @@ export default function PaymentHistory() {
   })
 
   useEffect(() => {
+    if (!clinicId) return undefined
+
     const fetchPayments = async () => {
       try {
-        const paymentsRef = collection(db, 'payments')
-        const q = query(paymentsRef, orderBy('processedAt', 'desc'))
+        const q = buildClinicScopedQuery('payments', clinicId, orderBy('processedAt', 'desc'))
         
         const unsubscribe = onSnapshot(q, (snapshot) => {
           const paymentsData = snapshot.docs.map(doc => ({
@@ -75,7 +78,7 @@ export default function PaymentHistory() {
     }
     
     fetchPayments()
-  }, [])
+  }, [clinicId])
 
   // Calculate analytics
   const calculateAnalytics = (paymentsData) => {

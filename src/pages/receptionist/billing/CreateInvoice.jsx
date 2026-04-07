@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { collection, addDoc, updateDoc, doc, getDoc, serverTimestamp, query, getDocs, orderBy } from 'firebase/firestore'
+import { collection, addDoc, updateDoc, doc, getDoc, serverTimestamp, getDocs, orderBy } from 'firebase/firestore'
 import { db } from '../../../firebase/config'
+import { useAuth } from '../../../hooks/useAuth'
+import { buildClinicScopedQuery, isClinicScopedRecord, withClinicScope } from '../../../utils/tenantScope'
 import { 
   ArrowLeft, 
   Plus, 
@@ -22,6 +24,7 @@ import {
 } from 'lucide-react'
 
 export default function CreateInvoice() {
+  const { clinicId } = useAuth()
   const navigate = useNavigate()
   const { id } = useParams() // Get invoice ID if editing
   const [loading, setLoading] = useState(false)
@@ -87,7 +90,7 @@ export default function CreateInvoice() {
       setIsEditing(true)
       loadInvoiceData()
     }
-  }, [id, loadInvoiceData])
+  }, [fetchPatients, id, loadInvoiceData])
 
   // Filter patients based on search term
   useEffect(() => {
@@ -103,11 +106,14 @@ export default function CreateInvoice() {
     }
   }, [patientSearchTerm, patients])
 
-  const fetchPatients = async () => {
+  const fetchPatients = useCallback(async () => {
     try {
+      if (!clinicId) {
+        throw new Error('Missing clinic workspace')
+      }
+
       // Fetch patients from appointments (same as prescription page)
-      const appointmentsRef = collection(db, 'appointments')
-      const appointmentsQuery = query(appointmentsRef, orderBy('createdAt', 'desc'))
+      const appointmentsQuery = buildClinicScopedQuery('appointments', clinicId, orderBy('createdAt', 'desc'))
       const appointmentsSnapshot = await getDocs(appointmentsQuery)
       
       const uniquePatients = []
@@ -136,39 +142,37 @@ export default function CreateInvoice() {
       setFilteredPatients(uniquePatients)
     } catch (error) {
       console.error('Error fetching patients:', error)
-      // Fallback to sample data if collection doesn't exist
-      const samplePatients = [
-        { id: '1', name: 'John Doe', phone: '+91 98765 43210', email: 'john@example.com', address: '123 Main St, City', age: '35', gender: 'Male', lastVisit: '2024-01-15' },
-        { id: '2', name: 'Jane Smith', phone: '+91 98765 43211', email: 'jane@example.com', address: '456 Oak Ave, Town', age: '28', gender: 'Female', lastVisit: '2024-01-20' },
-        { id: '3', name: 'Mike Johnson', phone: '+91 98765 43212', email: 'mike@example.com', address: '789 Pine Rd, Village', age: '42', gender: 'Male', lastVisit: '2024-01-18' }
-      ]
-      setPatients(samplePatients)
-      setFilteredPatients(samplePatients)
+      setPatients([])
+      setFilteredPatients([])
     }
-  }
+  }, [clinicId])
 
   // Load existing invoice data for editing
   const loadInvoiceData = useCallback(async () => {
     try {
       const invoiceDoc = await getDoc(doc(db, 'invoices', id))
       if (invoiceDoc.exists()) {
-        const invoiceData = invoiceDoc.data()
+        const loadedInvoiceData = invoiceDoc.data()
+
+        if (!isClinicScopedRecord(loadedInvoiceData, clinicId)) {
+          throw new Error('Invoice does not belong to this clinic workspace')
+        }
         
         // Set invoice data
         setInvoiceData({
-          ...invoiceData,
-          invoiceDate: invoiceData.invoiceDate ? new Date(invoiceData.invoiceDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-          dueDate: invoiceData.dueDate ? new Date(invoiceData.dueDate).toISOString().split('T')[0] : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+          ...loadedInvoiceData,
+          invoiceDate: loadedInvoiceData.invoiceDate ? new Date(loadedInvoiceData.invoiceDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+          dueDate: loadedInvoiceData.dueDate ? new Date(loadedInvoiceData.dueDate).toISOString().split('T')[0] : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
         })
         
         // Set selected patient
-        if (invoiceData.patientId) {
+        if (loadedInvoiceData.patientId) {
           setSelectedPatient({
-            id: invoiceData.patientId,
-            name: invoiceData.patientName,
-            phone: invoiceData.patientPhone,
-            email: invoiceData.patientEmail,
-            address: invoiceData.patientAddress
+            id: loadedInvoiceData.patientId,
+            name: loadedInvoiceData.patientName,
+            phone: loadedInvoiceData.patientPhone,
+            email: loadedInvoiceData.patientEmail,
+            address: loadedInvoiceData.patientAddress
           })
         }
       }
@@ -176,7 +180,7 @@ export default function CreateInvoice() {
       console.error('Error loading invoice data:', error)
       alert('Error loading invoice data. Please try again.')
     }
-  }, [id])
+  }, [clinicId, id])
 
   // Calculate invoice totals
   useEffect(() => {
@@ -330,10 +334,10 @@ export default function CreateInvoice() {
     try {
       if (isEditing) {
         // Update existing invoice
-        const invoiceToUpdate = {
+        const invoiceToUpdate = withClinicScope({
           ...invoiceData,
           updatedAt: serverTimestamp()
-        }
+        }, clinicId)
         
         await updateDoc(doc(db, 'invoices', id), invoiceToUpdate)
         alert('Invoice updated successfully!')
@@ -341,12 +345,12 @@ export default function CreateInvoice() {
         // Create new invoice
         const invoiceNumber = `INV-${Date.now()}-${Math.floor(Math.random() * 1000)}`
         
-        const invoiceToSave = {
+        const invoiceToSave = withClinicScope({
           ...invoiceData,
           invoiceNumber,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp()
-        }
+        }, clinicId)
 
         await addDoc(collection(db, 'invoices'), invoiceToSave)
         alert('Invoice created successfully!')

@@ -19,11 +19,12 @@ import {
   AlertTriangle,
   ArrowLeft
 } from 'lucide-react'
-import { collection, addDoc, updateDoc, doc, onSnapshot, query, orderBy, where } from 'firebase/firestore'
+import { collection, addDoc, updateDoc, doc, onSnapshot, orderBy, where } from 'firebase/firestore'
 import { db } from '../../../firebase/config'
+import { buildClinicScopedQuery, withClinicScope } from '../../../utils/tenantScope'
 
 export default function Appointments() {
-  const { currentUser } = useAuth()
+  const { currentUser, clinicId } = useAuth()
   const [appointments, setAppointments] = useState([])
   const [doctors, setDoctors] = useState([])
   const [showCreateModal, setShowCreateModal] = useState(false)
@@ -59,9 +60,9 @@ export default function Appointments() {
 
   // Fetch real data from Firebase
   useEffect(() => {
-    // Fetch appointments
-    const appointmentsRef = collection(db, 'appointments')
-    const q = query(appointmentsRef, orderBy('createdAt', 'desc'))
+    if (!clinicId) return undefined
+
+    const q = buildClinicScopedQuery('appointments', clinicId, orderBy('createdAt', 'desc'))
     
     const unsubscribeAppointments = onSnapshot(q, (snapshot) => {
       const appointmentsData = snapshot.docs.map(doc => ({
@@ -73,9 +74,7 @@ export default function Appointments() {
       console.error('Error fetching appointments:', error)
     })
 
-    // Fetch doctors from staffData collection
-    const doctorsRef = collection(db, 'staffData')
-    const doctorsQuery = query(doctorsRef, where('role', '==', 'doctor'))
+    const doctorsQuery = buildClinicScopedQuery('staffData', clinicId, where('role', '==', 'doctor'))
     
     const unsubscribeDoctors = onSnapshot(doctorsQuery, (snapshot) => {
       const doctorsData = snapshot.docs.map(doc => ({
@@ -91,7 +90,7 @@ export default function Appointments() {
       unsubscribeAppointments()
       unsubscribeDoctors()
     }
-  }, [])
+  }, [clinicId])
 
   const handleCreateAppointment = () => {
     setFormData({
@@ -184,23 +183,31 @@ export default function Appointments() {
     setLoading(true)
     
     try {
+      if (!clinicId) {
+        throw new Error('Missing clinic workspace')
+      }
+
+      const selectedDoctor = doctors.find((doctor) => doctor.fullName === formData.doctorName)
+
       if (showEditModal) {
         // Update existing appointment in Firestore
         const appointmentRef = doc(db, 'appointments', selectedAppointment.id)
         await updateDoc(appointmentRef, {
           ...formData,
+          doctorId: selectedDoctor?.uid || selectedAppointment?.doctorId || '',
           updatedAt: new Date().toISOString()
         })
         toast.success('Appointment updated successfully!')
         setShowEditModal(false)
       } else {
         // Create new appointment in Firestore
-        const appointmentData = {
+        const appointmentData = withClinicScope({
           ...formData,
           createdAt: new Date().toISOString(),
           createdBy: currentUser?.uid || 'receptionist',
+          doctorId: selectedDoctor?.uid || '',
           status: 'scheduled' // Ensure status is set to scheduled
-        }
+        }, clinicId)
         
         await addDoc(collection(db, 'appointments'), appointmentData)
         toast.success('Appointment created successfully!')

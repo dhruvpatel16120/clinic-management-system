@@ -18,11 +18,12 @@ import {
   CalendarCheck,
   ArrowLeft
 } from 'lucide-react'
-import { collection, onSnapshot, query, orderBy, updateDoc, doc, getDoc } from 'firebase/firestore'
+import { onSnapshot, orderBy, updateDoc, doc } from 'firebase/firestore'
 import { db } from '../../../firebase/config'
+import { buildClinicScopedQuery } from '../../../utils/tenantScope'
 
 export default function DoctorAppointments() {
-  const { currentUser } = useAuth()
+  const { currentUser, userProfile, clinicId } = useAuth()
   const [appointments, setAppointments] = useState([])
   const [filteredAppointments, setFilteredAppointments] = useState([])
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
@@ -31,45 +32,15 @@ export default function DoctorAppointments() {
       const [selectedAppointment, setSelectedAppointment] = useState(null)
   const [showPatientDetails, setShowPatientDetails] = useState(false)
 
-  const [doctorName, setDoctorName] = useState('')
-
-  // Fetch doctor's name from staffData collection
-  useEffect(() => {
-    if (!currentUser) return
-
-    const fetchDoctorName = async () => {
-      try {
-        const userDocRef = doc(db, 'staffData', currentUser.uid)
-        const userDoc = await getDoc(userDocRef)
-        
-        if (userDoc.exists()) {
-          const userData = userDoc.data()
-          // Use fullName from staffData, fallback to displayName, then to 'Unknown Doctor'
-          const name = userData.fullName || currentUser.displayName || 'Unknown Doctor'
-          setDoctorName(name)
-        } else {
-          // Fallback to displayName if no staffData document exists
-          setDoctorName(currentUser.displayName || 'Unknown Doctor')
-        }
-      } catch (error) {
-        console.error('Error fetching doctor name:', error)
-        setDoctorName(currentUser.displayName || 'Unknown Doctor')
-      }
-    }
-
-    fetchDoctorName()
-  }, [currentUser])
+  const doctorName = userProfile?.fullName || currentUser?.displayName || 'Unknown Doctor'
 
   // Fetch appointments for the logged-in doctor
   useEffect(() => {
-    if (!currentUser || !doctorName) return
+    if (!currentUser || !doctorName || !clinicId) return
 
     toast.success('Loading your appointments...')
     
-    // Fetch all appointments and filter client-side to handle name variations
-    
-    const appointmentsRef = collection(db, 'appointments')
-    const q = query(appointmentsRef, orderBy('createdAt', 'desc'))
+    const q = buildClinicScopedQuery('appointments', clinicId, orderBy('createdAt', 'desc'))
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const allAppointments = snapshot.docs.map(doc => ({
@@ -79,6 +50,10 @@ export default function DoctorAppointments() {
       
       // Filter appointments for this doctor with multiple name variations
       const doctorAppointments = allAppointments.filter(appointment => {
+        if (appointment.doctorId && appointment.doctorId === currentUser.uid) {
+          return true
+        }
+
         const appointmentDoctorName = appointment.doctorName || ''
         const currentDoctorName = doctorName || ''
         
@@ -122,7 +97,7 @@ export default function DoctorAppointments() {
     })
 
     return () => unsubscribe()
-  }, [currentUser, doctorName])
+  }, [clinicId, currentUser, doctorName])
 
   useEffect(() => {
     let filtered = appointments

@@ -20,11 +20,12 @@ import {
   CheckCircle,
   X
 } from 'lucide-react'
-import { collection, addDoc, onSnapshot, query, orderBy, getDocs, doc, getDoc, updateDoc } from 'firebase/firestore'
+import { collection, addDoc, onSnapshot, orderBy, getDocs, doc, getDoc, updateDoc } from 'firebase/firestore'
 import { db } from '../../../firebase/config'
+import { buildClinicScopedQuery, isClinicScopedRecord, withClinicScope } from '../../../utils/tenantScope'
 
 export default function CreatePrescription() {
-  const { currentUser } = useAuth()
+  const { currentUser, userProfile, clinicId } = useAuth()
   const navigate = useNavigate()
   const { id } = useParams()
   const medicineDropdownRef = useRef(null)
@@ -60,7 +61,7 @@ export default function CreatePrescription() {
 
   // Fetch prescription data for editing
   const fetchPrescriptionData = useCallback(async () => {
-    if (!id) return
+    if (!id || !clinicId) return
     
     setInitialLoading(true)
     try {
@@ -70,6 +71,10 @@ export default function CreatePrescription() {
       
       if (prescriptionSnap.exists()) {
         const prescriptionData = prescriptionSnap.data()
+
+        if (!isClinicScopedRecord(prescriptionData, clinicId)) {
+          throw new Error('Prescription does not belong to this clinic workspace')
+        }
         
         // This is edit mode - editing an existing prescription
         setIsEditMode(true)
@@ -100,6 +105,10 @@ export default function CreatePrescription() {
         
         if (appointmentSnap.exists()) {
           const appointmentData = appointmentSnap.data()
+
+          if (!isClinicScopedRecord(appointmentData, clinicId)) {
+            throw new Error('Appointment does not belong to this clinic workspace')
+          }
           
           // This is create mode - creating a new prescription from appointment
           setIsEditMode(false)
@@ -130,7 +139,7 @@ export default function CreatePrescription() {
     } finally {
       setInitialLoading(false)
     }
-  }, [id, navigate])
+  }, [clinicId, id, navigate])
 
   // Check if we're in edit mode and fetch data
   useEffect(() => {
@@ -142,11 +151,12 @@ export default function CreatePrescription() {
 
   // Fetch patients and medicines
   useEffect(() => {
+    if (!clinicId) return undefined
+
     const fetchData = async () => {
       try {
         // Fetch patients from appointments
-        const appointmentsRef = collection(db, 'appointments')
-        const appointmentsQuery = query(appointmentsRef, orderBy('createdAt', 'desc'))
+        const appointmentsQuery = buildClinicScopedQuery('appointments', clinicId, orderBy('createdAt', 'desc'))
         const appointmentsSnapshot = await getDocs(appointmentsQuery)
         
         const uniquePatients = []
@@ -174,8 +184,7 @@ export default function CreatePrescription() {
         setFilteredPatients(uniquePatients)
 
         // Fetch medicines
-        const medicinesRef = collection(db, 'medicines')
-        const medicinesQuery = query(medicinesRef, orderBy('name', 'asc'))
+        const medicinesQuery = buildClinicScopedQuery('medicines', clinicId, orderBy('name', 'asc'))
         
         const unsubscribe = onSnapshot(medicinesQuery, (snapshot) => {
           const medicinesData = snapshot.docs.map(doc => ({
@@ -194,7 +203,7 @@ export default function CreatePrescription() {
     }
 
     fetchData()
-  }, [])
+  }, [clinicId])
 
   // Filter medicines based on search
   useEffect(() => {
@@ -355,12 +364,16 @@ export default function CreatePrescription() {
     setLoading(true)
     
     try {
-      const prescriptionData = {
+      if (!clinicId) {
+        throw new Error('Missing clinic workspace')
+      }
+
+      const prescriptionData = withClinicScope({
         ...formData,
-        doctorName: currentUser.displayName || 'Unknown Doctor',
+        doctorName: userProfile?.fullName || currentUser.displayName || 'Unknown Doctor',
         doctorId: currentUser.uid,
         updatedAt: new Date().toISOString()
-      }
+      }, clinicId)
 
       if (isEditMode) {
         // Update existing prescription

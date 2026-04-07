@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { collection, onSnapshot, query, orderBy, where, updateDoc, doc, addDoc, serverTimestamp } from 'firebase/firestore'
+import { collection, onSnapshot, orderBy, where, updateDoc, doc, addDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '../../../firebase/config'
+import { useAuth } from '../../../hooks/useAuth'
+import { buildClinicScopedQuery, withClinicScope } from '../../../utils/tenantScope'
 import { 
   ArrowLeft, 
   Search, 
@@ -22,6 +24,7 @@ import {
 } from 'lucide-react'
 
 export default function PaymentProcessing() {
+  const { currentUser, clinicId } = useAuth()
   const [invoices, setInvoices] = useState([])
   const [filteredInvoices, setFilteredInvoices] = useState([])
   const [loading, setLoading] = useState(true)
@@ -37,12 +40,18 @@ export default function PaymentProcessing() {
   const [processingPayment, setProcessingPayment] = useState(false)
 
   useEffect(() => {
+    if (!clinicId) return undefined
+
     let unsubscribe
     
     const fetchInvoices = () => {
       try {
-        const invoicesRef = collection(db, 'invoices')
-        const q = query(invoicesRef, where('status', 'in', ['pending', 'overdue']), orderBy('createdAt', 'desc'))
+        const q = buildClinicScopedQuery(
+          'invoices',
+          clinicId,
+          where('status', 'in', ['pending', 'overdue']),
+          orderBy('createdAt', 'desc')
+        )
         
         unsubscribe = onSnapshot(q, (snapshot) => {
           const invoicesData = snapshot.docs.map(doc => ({
@@ -69,7 +78,7 @@ export default function PaymentProcessing() {
         unsubscribe()
       }
     }
-  }, [])
+  }, [clinicId])
 
   // Filter invoices based on search
   useEffect(() => {
@@ -106,6 +115,10 @@ export default function PaymentProcessing() {
 
     setProcessingPayment(true)
     try {
+      if (!clinicId) {
+        throw new Error('Missing clinic workspace')
+      }
+
       // Update invoice status
       await updateDoc(doc(db, 'invoices', selectedInvoice.id), {
         status: 'paid',
@@ -117,7 +130,7 @@ export default function PaymentProcessing() {
       })
 
       // Create payment record
-      await addDoc(collection(db, 'payments'), {
+      await addDoc(collection(db, 'payments'), withClinicScope({
         invoiceId: selectedInvoice.id,
         invoiceNumber: selectedInvoice.invoiceNumber,
         patientName: selectedInvoice.patientName,
@@ -126,10 +139,10 @@ export default function PaymentProcessing() {
         method: paymentData.method,
         reference: paymentData.reference,
         notes: paymentData.notes,
-        processedBy: 'receptionist', // You can get actual user ID here
+        processedBy: currentUser?.uid || 'receptionist',
         processedAt: serverTimestamp(),
         status: 'completed'
-      })
+      }, clinicId))
 
       alert('Payment processed successfully!')
       setPaymentModal(false)

@@ -25,11 +25,12 @@ import {
   Package,
   Activity
 } from 'lucide-react'
-import { collection, onSnapshot, query, orderBy, doc, deleteDoc, addDoc, updateDoc } from 'firebase/firestore'
+import { collection, onSnapshot, orderBy, doc, deleteDoc, addDoc, updateDoc } from 'firebase/firestore'
 import { db } from '../../../firebase/config'
+import { buildClinicScopedQuery, withClinicScope } from '../../../utils/tenantScope'
 
 export default function Medicines() {
-  const { currentUser } = useAuth()
+  const { currentUser, clinicId } = useAuth()
   const [medicines, setMedicines] = useState([])
   const [filteredMedicines, setFilteredMedicines] = useState([])
   const [searchTerm, setSearchTerm] = useState('')
@@ -58,12 +59,11 @@ export default function Medicines() {
 
   // Fetch medicines
   useEffect(() => {
-    if (!currentUser) return
+    if (!currentUser || !clinicId) return
 
     setLoading(true)
     
-    const medicinesRef = collection(db, 'medicines')
-    const q = query(medicinesRef, orderBy('name', 'asc'))
+    const q = buildClinicScopedQuery('medicines', clinicId, orderBy('name', 'asc'))
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const medicinesData = snapshot.docs.map(doc => ({
@@ -86,7 +86,7 @@ export default function Medicines() {
     })
 
     return () => unsubscribe()
-  }, [currentUser])
+  }, [clinicId, currentUser])
 
   useEffect(() => {
     let filtered = medicines
@@ -195,7 +195,11 @@ export default function Medicines() {
     setLoading(true)
     
     try {
-      const medicineData = {
+      if (!clinicId) {
+        throw new Error('Missing clinic workspace')
+      }
+
+      const medicineData = withClinicScope({
         ...formData,
         price: parseFloat(formData.price) || 0,
         stockQuantity: parseInt(formData.stockQuantity) || 0,
@@ -203,7 +207,7 @@ export default function Medicines() {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         createdBy: currentUser.uid
-      }
+      }, clinicId)
       
       if (showEditModal) {
         // Update existing medicine
