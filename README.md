@@ -27,6 +27,8 @@ Read these before taking real clinic data or charging customers:
 - [SaaS launch playbook](./docs/SAAS_LAUNCH_PLAYBOOK_INDIA.md)
 - [Legal and compliance checklist](./docs/LEGAL_COMPLIANCE_SAHARANPUR.md)
 - [Firestore tenancy migration guide](./docs/FIRESTORE_TENANCY_MIGRATION.md)
+- [First 5 clinics outreach playbook](./docs/FIRST_5_CLINICS_OUTREACH.md)
+- [Five-minute demo runbook](./docs/FIVE_MINUTE_DEMO_RUNBOOK.md)
 
 ## Environment
 
