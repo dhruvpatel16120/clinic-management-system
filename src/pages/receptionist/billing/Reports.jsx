@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { collection, onSnapshot, query, orderBy } from 'firebase/firestore'
-import { db } from '../../../firebase/config'
+import { onSnapshot, orderBy } from 'firebase/firestore'
+import { useAuth } from '../../../hooks/useAuth'
+import { buildClinicScopedQuery } from '../../../utils/tenantScope'
 import { 
   ArrowLeft, 
   Download, 
@@ -24,6 +25,7 @@ import {
 } from 'lucide-react'
 
 export default function Reports() {
+  const { clinicId } = useAuth()
   const [loading, setLoading] = useState(true)
   const [invoices, setInvoices] = useState([])
   const [payments, setPayments] = useState([])
@@ -33,15 +35,12 @@ export default function Reports() {
   const [searchQuery, setSearchQuery] = useState('')
 
   useEffect(() => {
-    fetchData()
-  }, [])
+    if (!clinicId) return undefined
 
-  const fetchData = async () => {
     try {
-      // Fetch invoices
-      const invoicesRef = collection(db, 'invoices')
-      const invoicesQuery = query(invoicesRef, orderBy('createdAt', 'desc'))
-      
+      const invoicesQuery = buildClinicScopedQuery('invoices', clinicId, orderBy('createdAt', 'desc'))
+      const paymentsQuery = buildClinicScopedQuery('payments', clinicId, orderBy('processedAt', 'desc'))
+
       const invoicesUnsubscribe = onSnapshot(invoicesQuery, (snapshot) => {
         const invoicesData = snapshot.docs.map(doc => ({
           id: doc.id,
@@ -50,10 +49,6 @@ export default function Reports() {
         setInvoices(invoicesData)
       })
 
-      // Fetch payments
-      const paymentsRef = collection(db, 'payments')
-      const paymentsQuery = query(paymentsRef, orderBy('processedAt', 'desc'))
-      
       const paymentsUnsubscribe = onSnapshot(paymentsQuery, (snapshot) => {
         const paymentsData = snapshot.docs.map(doc => ({
           id: doc.id,
@@ -70,8 +65,9 @@ export default function Reports() {
     } catch (error) {
       console.error('Error fetching data:', error)
       setLoading(false)
+      return undefined
     }
-  }
+  }, [clinicId])
 
   // Filter data based on date range
   const getFilteredData = () => {

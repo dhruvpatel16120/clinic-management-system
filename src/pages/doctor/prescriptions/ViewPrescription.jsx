@@ -22,9 +22,10 @@ import {
 } from 'lucide-react'
 import { doc, getDoc } from 'firebase/firestore'
 import { db } from '../../../firebase/config'
+import { isClinicScopedRecord } from '../../../utils/tenantScope'
 
 export default function ViewPrescription() {
-  const { currentUser: _ } = useAuth()
+  const { currentUser: _, clinicId } = useAuth()
   const { id } = useParams()
   const [prescription, setPrescription] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -36,7 +37,11 @@ export default function ViewPrescription() {
       try {
         const prescriptionDoc = await getDoc(doc(db, 'prescriptions', id))
         if (prescriptionDoc.exists()) {
-          setPrescription({ id: prescriptionDoc.id, ...prescriptionDoc.data() })
+          const loadedPrescription = prescriptionDoc.data()
+          if (!isClinicScopedRecord(loadedPrescription, clinicId)) {
+            throw new Error('Prescription does not belong to this clinic workspace')
+          }
+          setPrescription({ id: prescriptionDoc.id, ...loadedPrescription })
         } else {
           toast.error('Prescription not found')
         }
@@ -49,7 +54,7 @@ export default function ViewPrescription() {
     }
 
     fetchPrescription()
-  }, [id])
+  }, [clinicId, id])
 
   const getStatusColor = (status) => {
     switch (status) {

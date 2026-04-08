@@ -25,12 +25,12 @@ import {
   CheckCircle,
   AlertTriangle
 } from 'lucide-react'
-import { collection, onSnapshot, query, orderBy, where } from 'firebase/firestore'
-import { db } from '../../../firebase/config'
+import { onSnapshot, orderBy, where } from 'firebase/firestore'
 import { downloadPrescriptionPDF } from './PrescriptionPdfGenerator'
+import { buildClinicScopedQuery } from '../../../utils/tenantScope'
 
 export default function ReceptionistPrescriptions() {
-  const { currentUser } = useAuth()
+  const { currentUser, clinicId } = useAuth()
   const [prescriptions, setPrescriptions] = useState([])
   const [filteredPrescriptions, setFilteredPrescriptions] = useState([])
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
@@ -43,12 +43,11 @@ export default function ReceptionistPrescriptions() {
 
   // Fetch prescriptions
   useEffect(() => {
-    if (!currentUser) return
+    if (!currentUser || !clinicId) return
 
     setLoading(true)
     
-    const prescriptionsRef = collection(db, 'prescriptions')
-    const q = query(prescriptionsRef, orderBy('createdAt', 'desc'))
+    const q = buildClinicScopedQuery('prescriptions', clinicId, orderBy('createdAt', 'desc'))
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const prescriptionsData = snapshot.docs.map(doc => ({
@@ -70,14 +69,15 @@ export default function ReceptionistPrescriptions() {
     })
 
     return () => unsubscribe()
-  }, [currentUser])
+  }, [clinicId, currentUser])
 
   // Fetch doctors
   useEffect(() => {
+    if (!clinicId) return undefined
+
     const fetchDoctors = async () => {
       try {
-        const staffRef = collection(db, 'staffData')
-        const staffQuery = query(staffRef, where('role', '==', 'doctor'))
+        const staffQuery = buildClinicScopedQuery('staffData', clinicId, where('role', '==', 'doctor'))
         
         const unsubscribe = onSnapshot(staffQuery, (snapshot) => {
           const doctorsData = snapshot.docs.map(doc => ({
@@ -94,7 +94,7 @@ export default function ReceptionistPrescriptions() {
     }
 
     fetchDoctors()
-  }, [])
+  }, [clinicId])
 
   useEffect(() => {
     let filtered = prescriptions

@@ -22,11 +22,12 @@ import {
   CalendarRange,
   CalendarCheck
 } from 'lucide-react'
-import { collection, onSnapshot, query, orderBy, doc, deleteDoc } from 'firebase/firestore'
+import { onSnapshot, orderBy, doc, deleteDoc } from 'firebase/firestore'
 import { db } from '../../../firebase/config'
+import { buildClinicScopedQuery } from '../../../utils/tenantScope'
 
 export default function Prescriptions() {
-  const { currentUser } = useAuth()
+  const { currentUser, userProfile, clinicId } = useAuth()
   const [prescriptions, setPrescriptions] = useState([])
   const [filteredPrescriptions, setFilteredPrescriptions] = useState([])
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
@@ -37,13 +38,12 @@ export default function Prescriptions() {
 
   // Fetch prescriptions for the logged-in doctor
   useEffect(() => {
-    if (!currentUser) return
+    if (!currentUser || !clinicId) return
 
     setLoading(true)
     
-    // Fetch all prescriptions and filter by doctor
-    const prescriptionsRef = collection(db, 'prescriptions')
-    const q = query(prescriptionsRef, orderBy('createdAt', 'desc'))
+    const q = buildClinicScopedQuery('prescriptions', clinicId, orderBy('createdAt', 'desc'))
+    const currentDoctorName = userProfile?.fullName || currentUser.displayName || ''
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const allPrescriptions = snapshot.docs.map(doc => ({
@@ -53,8 +53,11 @@ export default function Prescriptions() {
       
       // Filter prescriptions for this doctor
       const doctorPrescriptions = allPrescriptions.filter(prescription => {
+        if (prescription.doctorId && prescription.doctorId === currentUser.uid) {
+          return true
+        }
+
         const prescriptionDoctorName = prescription.doctorName || ''
-        const currentDoctorName = currentUser.displayName || ''
         
         // Try exact match first
         if (prescriptionDoctorName === currentDoctorName) {
@@ -98,7 +101,7 @@ export default function Prescriptions() {
     })
 
     return () => unsubscribe()
-  }, [currentUser])
+  }, [clinicId, currentUser, userProfile])
 
   useEffect(() => {
     let filtered = prescriptions

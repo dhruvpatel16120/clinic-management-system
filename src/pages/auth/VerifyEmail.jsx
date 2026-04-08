@@ -83,7 +83,7 @@ export default function VerifyEmail() {
                 Account Created Successfully!
               </h2>
               <p className="text-slate-300">
-                Welcome to our healthcare team, <span className="text-blue-400 font-semibold">{fullName}</span>
+                Your clinic workspace is almost ready, <span className="text-blue-400 font-semibold">{fullName}</span>
               </p>
             </div>
 
@@ -98,7 +98,7 @@ export default function VerifyEmail() {
                 </span>
               </div>
               <p className="text-center text-slate-300 text-sm">
-                Your account has been created with {currentRole.title.toLowerCase()} privileges
+                Your first workspace account has been created with {currentRole.title.toLowerCase()} access
               </p>
             </div>
 

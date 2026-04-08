@@ -4,11 +4,11 @@ import { useState, useEffect } from 'react'
 import LogoutButton from '../../components/LogoutButton'
 import EmailVerificationStatus from '../../components/EmailVerificationStatus'
 import { Bell, UserPlus, CalendarCheck, Users, Calendar, FileText, FileDown, Hash, DollarSign } from 'lucide-react'
-import { collection, onSnapshot, query, orderBy } from 'firebase/firestore'
-import { db } from '../../firebase/config'
+import { onSnapshot, orderBy } from 'firebase/firestore'
+import { buildClinicScopedQuery } from '../../utils/tenantScope'
 
 export default function Receptionist() {
-  const { currentUser, userRole } = useAuth()
+  const { currentUser, userRole, userProfile, clinic, clinicId } = useAuth()
   const [appointments, setAppointments] = useState([])
   const [todayAppointments, setTodayAppointments] = useState(0)
   const [todayPrescriptions, setTodayPrescriptions] = useState(0)
@@ -16,8 +16,9 @@ export default function Receptionist() {
 
   // Fetch real appointment data
   useEffect(() => {
-    const appointmentsRef = collection(db, 'appointments')
-    const q = query(appointmentsRef, orderBy('createdAt', 'desc'))
+    if (!clinicId) return undefined
+
+    const q = buildClinicScopedQuery('appointments', clinicId, orderBy('createdAt', 'desc'))
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const appointmentsData = snapshot.docs.map(doc => ({
@@ -36,12 +37,13 @@ export default function Receptionist() {
     })
 
     return () => unsubscribe()
-  }, [])
+  }, [clinicId])
 
   // Fetch prescription data
   useEffect(() => {
-    const prescriptionsRef = collection(db, 'prescriptions')
-    const q = query(prescriptionsRef, orderBy('createdAt', 'desc'))
+    if (!clinicId) return undefined
+
+    const q = buildClinicScopedQuery('prescriptions', clinicId, orderBy('createdAt', 'desc'))
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const prescriptionsData = snapshot.docs.map(doc => ({
@@ -58,7 +60,7 @@ export default function Receptionist() {
     })
 
     return () => unsubscribe()
-  }, [])
+  }, [clinicId])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 text-white">
@@ -71,7 +73,9 @@ export default function Receptionist() {
             </div>
             <div>
               <h1 className="text-xl font-bold">Receptionist Dashboard</h1>
-              <p className="text-sm text-slate-400">Welcome, {currentUser?.displayName || 'Receptionist'}</p>
+              <p className="text-sm text-slate-400">
+                {clinic?.name ? `${clinic.name} workspace` : `Welcome, ${currentUser?.displayName || 'Receptionist'}`}
+              </p>
             </div>
           </div>
           <LogoutButton />
@@ -232,7 +236,11 @@ export default function Receptionist() {
             </div>
             <div>
               <p className="text-slate-400 text-sm">Full Name</p>
-              <p className="text-white font-medium">{currentUser?.displayName}</p>
+              <p className="text-white font-medium">{userProfile?.fullName || currentUser?.displayName}</p>
+            </div>
+            <div>
+              <p className="text-slate-400 text-sm">Clinic Workspace</p>
+              <p className="text-white font-medium">{clinic?.name || clinicId}</p>
             </div>
             <div>
               <p className="text-slate-400 text-sm">Email Verified</p>
@@ -244,5 +252,4 @@ export default function Receptionist() {
     </div>
   )
 }
-
 

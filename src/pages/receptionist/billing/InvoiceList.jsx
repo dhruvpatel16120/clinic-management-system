@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { collection, onSnapshot, query, orderBy } from 'firebase/firestore'
-import { db } from '../../../firebase/config'
+import { onSnapshot, orderBy } from 'firebase/firestore'
+import { useAuth } from '../../../hooks/useAuth'
+import { buildClinicScopedQuery } from '../../../utils/tenantScope'
 import { 
   ArrowLeft, 
   Search, 
@@ -24,6 +25,7 @@ import {
 } from 'lucide-react'
 
 export default function InvoiceList() {
+  const { clinicId } = useAuth()
   const [invoices, setInvoices] = useState([])
   const [filteredInvoices, setFilteredInvoices] = useState([])
   const [loading, setLoading] = useState(true)
@@ -34,10 +36,11 @@ export default function InvoiceList() {
   const [sortOrder, setSortOrder] = useState('desc')
 
   useEffect(() => {
+    if (!clinicId) return undefined
+
     const fetchInvoices = async () => {
       try {
-        const invoicesRef = collection(db, 'invoices')
-        const q = query(invoicesRef, orderBy('createdAt', 'desc'))
+        const q = buildClinicScopedQuery('invoices', clinicId, orderBy('createdAt', 'desc'))
         
         const unsubscribe = onSnapshot(q, (snapshot) => {
           const invoicesData = snapshot.docs.map(doc => ({
@@ -57,7 +60,7 @@ export default function InvoiceList() {
     }
     
     fetchInvoices()
-  }, [])
+  }, [clinicId])
 
   // Filter and search invoices
   useEffect(() => {

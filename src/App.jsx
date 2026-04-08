@@ -1,5 +1,6 @@
 import { Route, Routes, Navigate } from 'react-router-dom'
 import Home from './pages/Home'
+import LegalHub from './pages/LegalHub'
 import Login from './pages/auth/Login'
 import Doctor from './pages/doctor/Doctor'
 import Receptionist from './pages/receptionist/Receptionist'
@@ -36,10 +37,15 @@ function App() {
   return (
     <Routes>
       <Route path="/" element={<Home />} />
+      <Route path="/legal" element={<LegalHub />} />
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
       <Route path="/signup/:role" element={<Signup />} />
-      <Route path="/queue" element={<TokenDisplay />} />
+      <Route path="/queue" element={
+        <ProtectedRoute>
+          <TokenDisplay />
+        </ProtectedRoute>
+      } />
       
       {/* Doctor Routes */}
       <Route path="/doctor" element={

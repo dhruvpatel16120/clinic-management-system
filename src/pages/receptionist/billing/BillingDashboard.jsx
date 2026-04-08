@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { collection, onSnapshot, query, orderBy } from 'firebase/firestore'
-import { db } from '../../../firebase/config'
+import { onSnapshot, orderBy } from 'firebase/firestore'
+import { useAuth } from '../../../hooks/useAuth'
+import { buildClinicScopedQuery } from '../../../utils/tenantScope'
 import { 
   DollarSign, 
   FileText, 
@@ -16,6 +17,7 @@ import {
 } from 'lucide-react'
 
 export default function BillingDashboard() {
+  const { clinicId } = useAuth()
   const [stats, setStats] = useState({
     totalInvoices: 0,
     pendingPayments: 0,
@@ -29,11 +31,11 @@ export default function BillingDashboard() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    if (!clinicId) return undefined
+
     const fetchBillingData = async () => {
       try {
-        // Fetch invoices
-        const invoicesRef = collection(db, 'invoices')
-        const invoicesQuery = query(invoicesRef, orderBy('createdAt', 'desc'))
+        const invoicesQuery = buildClinicScopedQuery('invoices', clinicId, orderBy('createdAt', 'desc'))
         
         const unsubscribe = onSnapshot(invoicesQuery, (snapshot) => {
           const invoicesData = snapshot.docs.map(doc => ({
@@ -87,7 +89,7 @@ export default function BillingDashboard() {
     }
     
     fetchBillingData()
-  }, [])
+  }, [clinicId])
 
   if (loading) {
     return (

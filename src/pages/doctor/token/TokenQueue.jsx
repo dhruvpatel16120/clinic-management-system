@@ -17,11 +17,12 @@ import {
   Play,
   Check
 } from 'lucide-react'
-import { collection, onSnapshot, query, where, updateDoc, doc, getDoc } from 'firebase/firestore'
+import { onSnapshot, where, updateDoc, doc } from 'firebase/firestore'
 import { db } from '../../../firebase/config'
+import { buildClinicScopedQuery } from '../../../utils/tenantScope'
 
 export default function TokenQueue() {
-  const { currentUser } = useAuth()
+  const { currentUser, userProfile, clinicId } = useAuth()
   const [appointments, setAppointments] = useState([])
   const [filteredAppointments, setFilteredAppointments] = useState([])
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
@@ -30,39 +31,13 @@ export default function TokenQueue() {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState('all')
   const [loading, setLoading] = useState(false)
-  const [doctorName, setDoctorName] = useState('')
+  const doctorName = userProfile?.fullName || currentUser?.displayName || 'Unknown Doctor'
   const [currentToken, setCurrentToken] = useState(null)
   const [error, setError] = useState('')
 
-  // Fetch doctor's name from staffData collection
-  useEffect(() => {
-    if (!currentUser) return
-
-    const fetchDoctorName = async () => {
-      try {
-        const userDocRef = doc(db, 'staffData', currentUser.uid)
-        const userDoc = await getDoc(userDocRef)
-        
-        if (userDoc.exists()) {
-          const userData = userDoc.data()
-          const name = userData.fullName || currentUser.displayName || 'Unknown Doctor'
-          setDoctorName(name)
-        } else {
-          setDoctorName(currentUser.displayName || 'Unknown Doctor')
-        }
-      } catch (error) {
-        console.error('Error fetching doctor name:', error)
-        setError('Error fetching doctor information')
-        setDoctorName(currentUser.displayName || 'Unknown Doctor')
-      }
-    }
-
-    fetchDoctorName()
-  }, [currentUser])
-
     // Fetch appointments for the selected date and doctor
   useEffect(() => {
-    if (!selectedDate || !doctorName) {
+    if (!selectedDate || !doctorName || !clinicId) {
       return
     }
 
@@ -70,9 +45,9 @@ export default function TokenQueue() {
     setError('')
     
     try {
-      const appointmentsRef = collection(db, 'appointments')
-      const q = query(
-        appointmentsRef, 
+      const q = buildClinicScopedQuery(
+        'appointments',
+        clinicId,
         where('appointmentDate', '==', selectedDate),
         where('doctorName', '==', doctorName)
       )
@@ -120,7 +95,7 @@ export default function TokenQueue() {
       setLoading(false)
       toast.error('Error loading appointments')
     }
-  }, [selectedDate, doctorName])
+  }, [clinicId, doctorName, selectedDate])
 
 
 

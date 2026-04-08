@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useAuth } from '../../../hooks/useAuth'
 import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import LogoutButton from '../../../components/LogoutButton'
@@ -19,10 +20,12 @@ import {
   Search,
   Filter
 } from 'lucide-react'
-import { collection, onSnapshot, query, where, updateDoc, doc } from 'firebase/firestore'
+import { onSnapshot, where, updateDoc, doc } from 'firebase/firestore'
 import { db } from '../../../firebase/config'
+import { buildClinicScopedQuery } from '../../../utils/tenantScope'
 
 export default function TokenManagement() {
+  const { clinicId } = useAuth()
   const [appointments, setAppointments] = useState([])
   const [filteredAppointments, setFilteredAppointments] = useState([])
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
@@ -34,13 +37,13 @@ export default function TokenManagement() {
   // Fetch appointments for the selected date
   useEffect(() => {
     const fetchAppointments = async () => {
-      if (!selectedDate) return
+      if (!selectedDate || !clinicId) return
 
       setLoading(true)
       try {
-        const appointmentsRef = collection(db, 'appointments')
-        const q = query(
-          appointmentsRef, 
+        const q = buildClinicScopedQuery(
+          'appointments',
+          clinicId,
           where('appointmentDate', '==', selectedDate)
         )
         
@@ -86,7 +89,7 @@ export default function TokenManagement() {
     }
 
     fetchAppointments()
-  }, [selectedDate])
+  }, [clinicId, selectedDate])
 
   // Filter appointments based on search and status
   useEffect(() => {

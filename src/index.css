@@ -1,7 +1,46 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  color-scheme: dark;
+  --cf-bg: #07111f;
+  --cf-ink: #e2e8f0;
+  --cf-muted: #94a3b8;
+  --cf-accent: #8ee6f7;
+  --cf-card: rgba(15, 23, 42, 0.52);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--cf-bg);
+  color: var(--cf-ink);
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: 'Space Grotesk', 'Plus Jakarta Sans', system-ui, sans-serif;
+}
+
+a {
+  color: inherit;
+}
+
+::selection {
+  background: rgba(142, 230, 247, 0.28);
+  color: #ffffff;
+}
 
 /* Custom animations and utilities */
 @keyframes float {
