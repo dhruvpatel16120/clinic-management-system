@@ -3,10 +3,10 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { doc, getDoc } from 'firebase/firestore'
 import { db } from '../../../firebase/config'
 import { toast } from 'react-hot-toast'
-import { 
-  ArrowLeft, 
-  Download, 
-  Printer, 
+import {
+  ArrowLeft,
+  Download,
+  Printer,
   FileText,
   User,
   Phone,
@@ -75,10 +75,10 @@ export default function InvoicePdfGenerator() {
         setGeneratingPdf(false)
         return
       }
-      
+
       // Generate HTML content for the invoice
       const invoiceHTML = generateInvoiceHTML()
-      
+
       printWindow.document.write(`
         <!DOCTYPE html>
         <html>
@@ -367,15 +367,15 @@ export default function InvoicePdfGenerator() {
         </body>
         </html>
       `)
-      
+
       printWindow.document.close()
-      
+
       // Auto trigger print and close the window
       setTimeout(() => {
         printWindow.print()
         printWindow.close()
       }, 500)
-      
+
     } catch (error) {
       console.error('Error generating PDF:', error)
       toast.error('Error generating PDF. Please try again.')
@@ -413,6 +413,7 @@ export default function InvoicePdfGenerator() {
               <tr><td class="meta-label">Phone:</td><td class="meta-val">${invoice.patientPhone || 'N/A'}</td></tr>
               <tr><td class="meta-label">Email:</td><td class="meta-val">${invoice.patientEmail || 'N/A'}</td></tr>
               <tr><td class="meta-label">Address:</td><td class="meta-val">${invoice.patientAddress || 'N/A'}</td></tr>
+              <tr><td class="meta-label">Status:</td><td class="meta-val">${statusInfo || 'N/A'}</td></tr>
             </table>
           </div>
         </div>
@@ -597,14 +598,13 @@ export default function InvoicePdfGenerator() {
                   <p><span className="font-medium">Date:</span> {invoice.invoiceDate ? new Date(invoice.invoiceDate).toLocaleDateString() : 'N/A'}</p>
                   <p><span className="font-medium">Due Date:</span> {invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : 'N/A'}</p>
                   <p>
-                    <span className="font-medium">Status:</span> 
-                    <span className={`ml-2 px-3 py-1 rounded-full text-xs font-medium ${
-                      invoice.status === 'paid' 
-                        ? 'bg-green-100 text-green-800' 
-                        : invoice.status === 'pending'
+                    <span className="font-medium">Status:</span>
+                    <span className={`ml-2 px-3 py-1 rounded-full text-xs font-medium ${invoice.status === 'paid'
+                      ? 'bg-green-100 text-green-800'
+                      : invoice.status === 'pending'
                         ? 'bg-yellow-100 text-yellow-800'
                         : 'bg-red-100 text-red-800'
-                    }`}>
+                      }`}>
                       {invoice.status?.charAt(0).toUpperCase() + invoice.status?.slice(1)}
                     </span>
                   </p>
@@ -634,12 +634,12 @@ export default function InvoicePdfGenerator() {
                         <td className="border border-gray-300 px-4 py-3 text-right font-medium">{item.amount?.toLocaleString() || '0'}</td>
                       </tr>
                     )) || (
-                      <tr>
-                        <td colSpan="4" className="border border-gray-300 px-4 py-3 text-center text-gray-500">
-                          No items
-                        </td>
-                      </tr>
-                    )}
+                        <tr>
+                          <td colSpan="4" className="border border-gray-300 px-4 py-3 text-center text-gray-500">
+                            No items
+                          </td>
+                        </tr>
+                      )}
                   </tbody>
                 </table>
               </div>

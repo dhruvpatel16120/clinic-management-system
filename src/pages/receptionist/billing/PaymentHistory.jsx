@@ -488,13 +488,6 @@ export default function PaymentHistory() {
                             >
                               <Eye className="w-4 h-4" />
                             </Link>
-                            <button
-                              onClick={() => window.print()}
-                              className="text-green-400 hover:text-green-300 p-1 hover:bg-green-500/20 rounded transition-colors"
-                              title="Print Receipt"
-                            >
-                              <Receipt className="w-4 h-4" />
-                            </button>
                           </div>
                         </td>
                       </tr>

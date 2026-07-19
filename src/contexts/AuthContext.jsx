@@ -36,26 +36,27 @@ export function AuthProvider({ children }) {
     const limitKey = `forgot_password_attempts_${cleanEmail}`
     const now = Date.now()
     const oneHour = 60 * 60 * 1000
-    
+
     const attemptsStr = localStorage.getItem(limitKey) || '[]'
     let attempts = []
     try {
       attempts = JSON.parse(attemptsStr)
     } catch (e) {
       attempts = []
+      console.log(e)
     }
-    
+
     attempts = attempts.filter(timestamp => now - timestamp < oneHour)
-    
+
     if (attempts.length >= 3) {
       throw new Error('Too many password reset requests. Please wait at least an hour before trying again.')
     }
-    
+
     const result = await resetUserPassword(email)
-    
+
     attempts.push(now)
     localStorage.setItem(limitKey, JSON.stringify(attempts))
-    
+
     return result
   }
 
@@ -64,26 +65,27 @@ export function AuthProvider({ children }) {
       const limitKey = `resend_verification_attempts_${currentUser.uid}`
       const now = Date.now()
       const oneHour = 60 * 60 * 1000
-      
+
       const attemptsStr = localStorage.getItem(limitKey) || '[]'
       let attempts = []
       try {
         attempts = JSON.parse(attemptsStr)
       } catch (e) {
         attempts = []
+        console.log(e)
       }
-      
+
       attempts = attempts.filter(timestamp => now - timestamp < oneHour)
-      
+
       if (attempts.length >= 3) {
         throw new Error('Too many verification email requests. Please wait at least an hour before trying again.')
       }
-      
+
       const result = await resendUserVerificationEmail(currentUser)
-      
+
       attempts.push(now)
       localStorage.setItem(limitKey, JSON.stringify(attempts))
-      
+
       return result
     }
   }
