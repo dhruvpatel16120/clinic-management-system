@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { doc, getDoc } from 'firebase/firestore'
 import { db } from '../../../firebase/config'
+import { toast } from 'react-hot-toast'
 import { 
   ArrowLeft, 
   Download, 
@@ -33,13 +34,13 @@ export default function InvoicePdfGenerator() {
         if (invoiceDoc.exists()) {
           setInvoice({ id: invoiceDoc.id, ...invoiceDoc.data() })
         } else {
-          alert('Invoice not found')
+          toast.error('Invoice not found')
           navigate('/receptionist/billing')
         }
         setLoading(false)
       } catch (error) {
         console.error('Error fetching invoice:', error)
-        alert('Error fetching invoice')
+        toast.error('Error fetching invoice')
         setLoading(false)
       }
     }
@@ -69,6 +70,11 @@ export default function InvoicePdfGenerator() {
     try {
       // Create a new window for printing
       const printWindow = window.open('', '_blank')
+      if (!printWindow) {
+        toast.error('Popup blocked! Please allow popups to generate and print PDF.')
+        setGeneratingPdf(false)
+        return
+      }
       
       // Generate HTML content for the invoice
       const invoiceHTML = generateInvoiceHTML()
@@ -80,136 +86,299 @@ export default function InvoicePdfGenerator() {
           <title>Invoice #${invoice.invoiceNumber}</title>
           <style>
             @media print {
-              body { margin: 0; }
-              .no-print { display: none; }
+              @page {
+                size: A4 portrait;
+                margin: 0; /* Strip browser default headers & footers */
+              }
+              body {
+                margin: 0;
+                padding: 20mm 15mm;
+                background-color: #ffffff;
+                color: #0f172a;
+                font-size: 10pt;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+              }
+              .no-print {
+                display: none !important;
+              }
+              thead {
+                display: table-header-group;
+              }
+              tfoot {
+                display: table-footer-group;
+              }
+              tr {
+                page-break-inside: avoid;
+                break-inside: avoid;
+              }
             }
             body {
-              font-family: Arial, sans-serif;
-              margin: 20px;
-              color: #333;
-              line-height: 1.6;
+              font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+              margin: 0;
+              padding: 20mm 15mm;
+              color: #0f172a;
+              line-height: 1.5;
+              background-color: #ffffff;
             }
-            .header {
-              text-align: center;
-              border-bottom: 2px solid #333;
-              padding-bottom: 20px;
-              margin-bottom: 30px;
-            }
-            .clinic-name {
-              font-size: 24px;
-              font-weight: bold;
-              color: #2563eb;
-              margin-bottom: 5px;
-            }
-            .clinic-info {
-              font-size: 14px;
-              color: #666;
-            }
-            .invoice-details {
+            .header-container {
               display: flex;
               justify-content: space-between;
-              margin-bottom: 30px;
+              align-items: flex-end;
+              border-bottom: 3px solid #1e3a8a;
+              padding-bottom: 12px;
+              margin-bottom: 25px;
+              position: relative;
             }
-            .patient-info, .invoice-info {
+            .clinic-brand {
+              display: flex;
+              flex-direction: column;
+            }
+            .clinic-name-text {
+              font-size: 22pt;
+              font-weight: 850;
+              color: #1e3a8a;
+              line-height: 1.1;
+              letter-spacing: -0.02em;
+            }
+            .clinic-tagline {
+              font-size: 9.5pt;
+              color: #475569;
+              font-style: italic;
+              margin-top: 4px;
+            }
+            .clinic-contact-info {
+              text-align: right;
+              font-size: 9pt;
+              color: #334155;
+              line-height: 1.4;
+            }
+            .gstin-val {
+              font-weight: 700;
+              color: #0f172a;
+            }
+            .status-stamp {
+              position: absolute;
+              top: 5px;
+              right: 280px;
+              border: 3px double;
+              padding: 6px 16px;
+              font-size: 14pt;
+              font-weight: 900;
+              text-transform: uppercase;
+              transform: rotate(-10deg);
+              opacity: 0.85;
+              border-radius: 4px;
+            }
+            .status-stamp.status-paid {
+              color: #166534;
+              border-color: #166534;
+              background-color: #f0fdf4;
+            }
+            .status-stamp.status-pending {
+              color: #92400e;
+              border-color: #92400e;
+              background-color: #fffbeb;
+            }
+            .status-stamp.status-overdue {
+              color: #991b1b;
+              border-color: #991b1b;
+              background-color: #fef2f2;
+            }
+            .meta-section {
+              display: flex;
+              justify-content: space-between;
+              margin-bottom: 25px;
+              gap: 20px;
+            }
+            .meta-card {
               flex: 1;
+              border: 1px solid #e2e8f0;
+              border-radius: 6px;
+              overflow: hidden;
             }
-            .section-title {
-              font-size: 16px;
+            .card-header {
+              background-color: #f1f5f9;
+              padding: 6px 12px;
+              font-size: 8.5pt;
+              font-weight: 700;
+              color: #1e3a8a;
+              border-bottom: 1px solid #e2e8f0;
+              letter-spacing: 0.05em;
+            }
+            .card-body {
+              padding: 10px 12px;
+            }
+            .meta-table {
+              width: 100%;
+              border-collapse: collapse;
+            }
+            .meta-table td {
+              padding: 3px 0;
+              font-size: 9.5pt;
+              vertical-align: top;
+            }
+            .meta-label {
+              width: 90px;
+              color: #475569;
+              font-weight: 600;
+            }
+            .meta-val {
+              color: #0f172a;
+            }
+            .highlight-val {
+              font-family: monospace;
               font-weight: bold;
-              margin-bottom: 10px;
               color: #2563eb;
             }
-            .info-row {
-              margin-bottom: 8px;
-            }
-            .label {
+            .badge {
+              display: inline-block;
+              padding: 2px 8px;
+              border-radius: 12px;
+              font-size: 8pt;
               font-weight: bold;
-              color: #555;
+              text-transform: uppercase;
             }
+            .badge-paid { background-color: #dcfce7; color: #166534; }
+            .badge-pending { background-color: #fef3c7; color: #92400e; }
+            .badge-overdue { background-color: #fee2e2; color: #991b1b; }
+            
             .items-table {
               width: 100%;
               border-collapse: collapse;
-              margin: 20px 0;
+              margin: 25px 0;
             }
             .items-table th, .items-table td {
-              border: 1px solid #ddd;
-              padding: 12px;
+              border: 1px solid #cbd5e1;
+              padding: 10px 12px;
               text-align: left;
+              font-size: 9.5pt;
             }
             .items-table th {
-              background-color: #f8f9fa;
-              font-weight: bold;
+              background-color: #f1f5f9;
+              font-weight: 700;
+              color: #1e293b;
+              text-transform: uppercase;
+              font-size: 8.5pt;
+              letter-spacing: 0.02em;
             }
             .amount-column {
               text-align: right;
             }
-            .summary {
-              margin-top: 30px;
-              text-align: right;
+            .summary-section {
+              display: flex;
+              justify-content: flex-end;
+              margin-top: 20px;
+              page-break-inside: avoid;
+              break-inside: avoid;
+            }
+            .summary-container {
+              width: 280px;
+              border: 1px solid #cbd5e1;
+              border-radius: 6px;
+              overflow: hidden;
             }
             .summary-row {
-              margin-bottom: 10px;
+              display: flex;
+              justify-content: space-between;
+              padding: 8px 12px;
+              font-size: 9.5pt;
+              border-bottom: 1px solid #f1f5f9;
             }
-            .total {
-              font-size: 18px;
-              font-weight: bold;
-              color: #059669;
-              border-top: 2px solid #333;
-              padding-top: 10px;
+            .summary-row:last-child {
+              border-bottom: none;
             }
-            .status-badge {
-              display: inline-block;
-              padding: 4px 12px;
-              border-radius: 20px;
-              font-size: 12px;
-              font-weight: bold;
-              text-transform: uppercase;
+            .summary-row .label {
+              font-weight: 600;
+              color: #475569;
             }
-            .status-paid { background-color: #dcfce7; color: #059669; }
-            .status-pending { background-color: #fef3c7; color: #d97706; }
-            .status-overdue { background-color: #fee2e2; color: #dc2626; }
-            .footer {
+            .summary-row.total {
+              font-size: 12pt;
+              font-weight: 800;
+              color: #166534;
+              border-top: 2px solid #cbd5e1;
+              background-color: #f0fdf4;
+            }
+            .notes-signature-container {
+              display: flex;
+              justify-content: space-between;
+              align-items: flex-end;
               margin-top: 40px;
+              page-break-inside: avoid;
+              break-inside: avoid;
+              gap: 40px;
+            }
+            .notes-block {
+              flex: 1.5;
+            }
+            .notes-title {
+              font-size: 10pt;
+              font-weight: 700;
+              color: #1e3a8a;
+              margin-bottom: 6px;
+              text-transform: uppercase;
+              letter-spacing: 0.05em;
+            }
+            .notes-text {
+              font-size: 9pt;
+              color: #475569;
+              background-color: #f8fafc;
+              border: 1px solid #e2e8f0;
+              padding: 10px;
+              border-radius: 6px;
+              margin: 0;
+            }
+            .signature-block {
+              flex: 1;
               text-align: center;
-              font-size: 12px;
-              color: #666;
-              border-top: 1px solid #ddd;
-              padding-top: 20px;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
             }
-            .print-button {
-              background-color: #2563eb;
-              color: white;
-              border: none;
-              padding: 10px 20px;
-              border-radius: 5px;
-              cursor: pointer;
-              font-size: 16px;
-              margin: 20px 0;
+            .signature-space {
+              height: 55px;
             }
-            .print-button:hover {
-              background-color: #1d4ed8;
+            .signature-line {
+              width: 180px;
+              border-top: 1.5px solid #94a3b8;
+              margin-bottom: 4px;
+              font-weight: 700;
+              font-size: 9.5pt;
+              color: #1e293b;
+            }
+            .signature-subtitle {
+              font-size: 8pt;
+              color: #64748b;
+            }
+            .footer {
+              margin-top: 50px;
+              text-align: center;
+              font-size: 8.5pt;
+              color: #64748b;
+              border-top: 1px solid #e2e8f0;
+              padding-top: 15px;
+              page-break-inside: avoid;
+              break-inside: avoid;
             }
           </style>
         </head>
         <body>
           ${invoiceHTML}
-          <div class="no-print" style="text-align: center;">
-            <button class="print-button" onclick="window.print()">Print Invoice</button>
-          </div>
         </body>
         </html>
       `)
       
       printWindow.document.close()
       
-      // Wait for content to load then print
-      printWindow.onload = () => {
+      // Auto trigger print and close the window
+      setTimeout(() => {
         printWindow.print()
-      }
+        printWindow.close()
+      }, 500)
       
     } catch (error) {
       console.error('Error generating PDF:', error)
-      alert('Error generating PDF. Please try again.')
+      toast.error('Error generating PDF. Please try again.')
     } finally {
       setGeneratingPdf(false)
     }
@@ -220,49 +389,43 @@ export default function InvoicePdfGenerator() {
     if (!invoice) return ''
 
     const statusInfo = getStatusIcon(invoice.status)
-    const StatusIcon = statusInfo.icon
 
     return `
-      <div class="header">
-        <div class="clinic-name">City Medical Center</div>
-        <div class="clinic-info">
+      <div class="header-container">
+        <div class="clinic-brand">
+          <div class="clinic-name-text">City Medical Center</div>
+          <div class="clinic-tagline">Quality Care • Compassionate Healing</div>
+        </div>
+        <div class="status-stamp status-${invoice.status}">${invoice.status}</div>
+        <div class="clinic-contact-info">
           123 Healthcare Avenue, Medical District<br>
           Phone: +91 98765 43210 | Email: info@citymedical.com<br>
-          GSTIN: 27ABCDE1234F1Z5
+          GSTIN: <span class="gstin-val">27ABCDE1234F1Z5</span>
         </div>
       </div>
 
-      <div class="invoice-details">
-        <div class="patient-info">
-          <div class="section-title">Bill To:</div>
-          <div class="info-row">
-            <span class="label">Name:</span> ${invoice.patientName || 'N/A'}
-          </div>
-          <div class="info-row">
-            <span class="label">Phone:</span> ${invoice.patientPhone || 'N/A'}
-          </div>
-          <div class="info-row">
-            <span class="label">Email:</span> ${invoice.patientEmail || 'N/A'}
-          </div>
-          <div class="info-row">
-            <span class="label">Address:</span> ${invoice.patientAddress || 'N/A'}
+      <div class="meta-section">
+        <div class="meta-card">
+          <div class="card-header">PATIENT DETAILS (BILL TO)</div>
+          <div class="card-body">
+            <table class="meta-table">
+              <tr><td class="meta-label">Name:</td><td class="meta-val">${invoice.patientName || 'N/A'}</td></tr>
+              <tr><td class="meta-label">Phone:</td><td class="meta-val">${invoice.patientPhone || 'N/A'}</td></tr>
+              <tr><td class="meta-label">Email:</td><td class="meta-val">${invoice.patientEmail || 'N/A'}</td></tr>
+              <tr><td class="meta-label">Address:</td><td class="meta-val">${invoice.patientAddress || 'N/A'}</td></tr>
+            </table>
           </div>
         </div>
 
-        <div class="invoice-info">
-          <div class="section-title">Invoice Details:</div>
-          <div class="info-row">
-            <span class="label">Invoice #:</span> ${invoice.invoiceNumber}
-          </div>
-          <div class="info-row">
-            <span class="label">Date:</span> ${invoice.invoiceDate ? new Date(invoice.invoiceDate).toLocaleDateString() : 'N/A'}
-          </div>
-          <div class="info-row">
-            <span class="label">Due Date:</span> ${invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : 'N/A'}
-          </div>
-          <div class="info-row">
-            <span class="label">Status:</span> 
-            <span class="status-badge status-${invoice.status}">${invoice.status?.charAt(0).toUpperCase() + invoice.status?.slice(1)}</span>
+        <div class="meta-card">
+          <div class="card-header">INVOICE DETAILS</div>
+          <div class="card-body">
+            <table class="meta-table">
+              <tr><td class="meta-label">Invoice #:</td><td class="meta-val highlight-val">#${invoice.invoiceNumber}</td></tr>
+              <tr><td class="meta-label">Date:</td><td class="meta-val">${invoice.invoiceDate ? new Date(invoice.invoiceDate).toLocaleDateString() : 'N/A'}</td></tr>
+              <tr><td class="meta-label">Due Date:</td><td class="meta-val">${invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : 'N/A'}</td></tr>
+              <tr><td class="meta-label">Status:</td><td class="meta-val"><span class="badge badge-${invoice.status}">${invoice.status}</span></td></tr>
+            </table>
           </div>
         </div>
       </div>
@@ -271,9 +434,9 @@ export default function InvoicePdfGenerator() {
         <thead>
           <tr>
             <th>Description</th>
-            <th class="amount-column">Quantity</th>
-            <th class="amount-column">Unit Price (₹)</th>
-            <th class="amount-column">Amount (₹)</th>
+            <th class="amount-column" style="width: 80px;">Quantity</th>
+            <th class="amount-column" style="width: 130px;">Unit Price (₹)</th>
+            <th class="amount-column" style="width: 130px;">Amount (₹)</th>
           </tr>
         </thead>
         <tbody>
@@ -281,41 +444,53 @@ export default function InvoicePdfGenerator() {
             <tr>
               <td>${item.description || 'N/A'}</td>
               <td class="amount-column">${item.quantity || 0}</td>
-              <td class="amount-column">${item.unitPrice?.toLocaleString() || '0'}</td>
-              <td class="amount-column">${item.amount?.toLocaleString() || '0'}</td>
+              <td class="amount-column">${item.unitPrice?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}</td>
+              <td class="amount-column">${item.amount?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}</td>
             </tr>
-          `).join('') || '<tr><td colspan="4" style="text-align: center;">No items</td></tr>'}
+          `).join('') || '<tr><td colspan="4" style="text-align: center;">No items listed</td></tr>'}
         </tbody>
       </table>
 
-      <div class="summary">
-        <div class="summary-row">
-          <span class="label">Subtotal:</span> ₹${invoice.subtotal?.toLocaleString() || '0'}
-        </div>
-        <div class="summary-row">
-          <span class="label">Tax (${invoice.taxRate || 0}%):</span> ₹${invoice.taxAmount?.toLocaleString() || '0'}
-        </div>
-        ${invoice.discount > 0 ? `
+      <div class="summary-section">
+        <div class="summary-container">
           <div class="summary-row">
-            <span class="label">Discount:</span> -₹${invoice.discount?.toLocaleString() || '0'}
+            <span class="label">Subtotal:</span>
+            <span>₹${invoice.subtotal?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}</span>
           </div>
-        ` : ''}
-        <div class="summary-row total">
-          <span class="label">Total Amount:</span> ₹${invoice.totalAmount?.toLocaleString() || '0'}
+          <div class="summary-row">
+            <span class="label">Tax (${invoice.taxRate || 0}%):</span>
+            <span>₹${invoice.taxAmount?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}</span>
+          </div>
+          ${invoice.discount > 0 ? `
+            <div class="summary-row" style="color: #b91c1c;">
+              <span class="label" style="color: #b91c1c;">Discount:</span>
+              <span>-₹${invoice.discount?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}</span>
+            </div>
+          ` : ''}
+          <div class="summary-row total">
+            <span class="label" style="color: #166534;">Total Amount:</span>
+            <span>₹${invoice.totalAmount?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}</span>
+          </div>
         </div>
       </div>
 
-      ${invoice.notes ? `
-        <div style="margin-top: 30px;">
-          <div class="section-title">Notes:</div>
-          <p>${invoice.notes}</p>
+      <div class="notes-signature-container">
+        <div class="notes-block">
+          ${invoice.notes ? `
+            <div class="notes-title">Notes & Terms</div>
+            <p class="notes-text">${invoice.notes}</p>
+          ` : ''}
         </div>
-      ` : ''}
+        <div class="signature-block">
+          <div class="signature-space"></div>
+          <div class="signature-line">Authorized Signatory</div>
+          <div class="signature-subtitle">City Medical Center</div>
+        </div>
+      </div>
 
       <div class="footer">
-        <p>Thank you for choosing City Medical Center!</p>
-        <p>For any queries, please contact us at +91 98765 43210</p>
-        <p>This is a computer generated invoice and does not require a signature.</p>
+        <p>Thank you for choosing City Medical Center! Wishing you a speedy recovery.</p>
+        <p>This is a computer generated invoice and does not require physical signature.</p>
       </div>
     `
   }
@@ -378,13 +553,6 @@ export default function InvoicePdfGenerator() {
                   <span>Generate PDF</span>
                 </>
               )}
-            </button>
-            <button
-              onClick={() => window.print()}
-              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
-            >
-              <Printer className="w-4 h-4" />
-              <span>Print</span>
             </button>
           </div>
         </div>
@@ -529,10 +697,10 @@ export default function InvoicePdfGenerator() {
             Back to Billing
           </button>
           <button
-            onClick={() => navigate(`/receptionist/billing/invoices/${invoice.id}`)}
+            onClick={() => navigate('/receptionist/billing/invoices')}
             className="px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
           >
-            View Invoice Details
+            View Invoice List
           </button>
         </div>
       </main>

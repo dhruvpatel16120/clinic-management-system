@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore'
 import { db } from '../../../firebase/config'
@@ -76,8 +76,8 @@ export default function Reports() {
     return new Date(val)
   }
 
-  // Filter data based on date range
-  const getFilteredData = () => {
+  // Filter data based on date range and other criteria using useMemo
+  const filteredData = useMemo(() => {
     let filteredInvoices = [...invoices]
     let filteredPayments = [...payments]
 
@@ -169,11 +169,11 @@ export default function Reports() {
     }
 
     return { filteredInvoices, filteredPayments }
-  }
+  }, [invoices, payments, dateRange, statusFilter, paymentMethodFilter, searchQuery])
 
-  // Calculate statistics
-  const calculateStats = () => {
-    const { filteredInvoices, filteredPayments } = getFilteredData()
+  // Calculate statistics using useMemo
+  const stats = useMemo(() => {
+    const { filteredInvoices, filteredPayments } = filteredData
     
     const totalInvoices = filteredInvoices.length
     const totalAmount = filteredInvoices.reduce((sum, invoice) => sum + (invoice.totalAmount || 0), 0)
@@ -210,12 +210,11 @@ export default function Reports() {
       monthlyData,
       collectionRate: totalInvoices > 0 ? (paidInvoices / totalInvoices) * 100 : 0
     }
-  }
+  }, [filteredData])
 
   // Generate and download report
   const downloadReport = () => {
-    const stats = calculateStats()
-    const { filteredInvoices, filteredPayments } = getFilteredData()
+    const { filteredInvoices, filteredPayments } = filteredData
     
     const reportData = {
       reportGenerated: new Date().toLocaleString(),
@@ -243,7 +242,7 @@ export default function Reports() {
 
   // Export to CSV
   const exportToCSV = () => {
-    const { filteredInvoices, filteredPayments } = getFilteredData()
+    const { filteredInvoices, filteredPayments } = filteredData
     
     // Invoices CSV
     const invoicesCSV = [
@@ -308,8 +307,6 @@ export default function Reports() {
     )
   }
 
-  const stats = calculateStats()
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 text-white">
       {/* Header */}
@@ -364,12 +361,12 @@ export default function Reports() {
                 onChange={(e) => setDateRange(e.target.value)}
                 className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-400"
               >
-                <option value="today">Today</option>
-                <option value="week">This Week</option>
-                <option value="month">This Month</option>
-                <option value="quarter">This Quarter</option>
-                <option value="year">This Year</option>
-                <option value="all">All Time</option>
+                <option value="today" className="bg-slate-800 text-white">Today</option>
+                <option value="week" className="bg-slate-800 text-white">This Week</option>
+                <option value="month" className="bg-slate-800 text-white">This Month</option>
+                <option value="quarter" className="bg-slate-800 text-white">This Quarter</option>
+                <option value="year" className="bg-slate-800 text-white">This Year</option>
+                <option value="all" className="bg-slate-800 text-white">All Time</option>
               </select>
             </div>
 
@@ -381,10 +378,10 @@ export default function Reports() {
                 onChange={(e) => setStatusFilter(e.target.value)}
                 className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-400"
               >
-                <option value="all">All Statuses</option>
-                <option value="pending">Pending</option>
-                <option value="paid">Paid</option>
-                <option value="overdue">Overdue</option>
+                <option value="all" className="bg-slate-800 text-white">All Statuses</option>
+                <option value="pending" className="bg-slate-800 text-white">Pending</option>
+                <option value="paid" className="bg-slate-800 text-white">Paid</option>
+                <option value="overdue" className="bg-slate-800 text-white">Overdue</option>
               </select>
             </div>
 
@@ -396,10 +393,10 @@ export default function Reports() {
                 onChange={(e) => setPaymentMethodFilter(e.target.value)}
                 className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-400"
               >
-                <option value="all">All Methods</option>
-                <option value="cash">Cash</option>
-                <option value="card">Card</option>
-                <option value="online">Online</option>
+                <option value="all" className="bg-slate-800 text-white">All Methods</option>
+                <option value="cash" className="bg-slate-800 text-white">Cash</option>
+                <option value="card" className="bg-slate-800 text-white">Card</option>
+                <option value="online" className="bg-slate-800 text-white">Online</option>
               </select>
             </div>
 
@@ -428,7 +425,7 @@ export default function Reports() {
               <FileText className="w-6 h-6 text-blue-400" />
               <h3 className="text-lg font-semibold">Total Invoices</h3>
             </div>
-            <p className="text-3xl font-bold text-blue-400">{stats.totalInvoices}</p>
+            <p className="text-3xl font-bold text-blue-400 tabular-nums">{stats.totalInvoices}</p>
             <p className="text-sm text-slate-400 mt-2">In selected period</p>
           </div>
 
@@ -438,7 +435,7 @@ export default function Reports() {
               <DollarSign className="w-6 h-6 text-green-400" />
               <h3 className="text-lg font-semibold">Total Amount</h3>
             </div>
-            <p className="text-3xl font-bold text-green-400">₹{stats.totalAmount.toLocaleString()}</p>
+            <p className="text-3xl font-bold text-green-400 tabular-nums">₹{stats.totalAmount.toLocaleString()}</p>
             <p className="text-sm text-slate-400 mt-2">Invoice value</p>
           </div>
 
@@ -448,7 +445,7 @@ export default function Reports() {
               <TrendingUp className="w-6 h-6 text-yellow-400" />
               <h3 className="text-lg font-semibold">Collection Rate</h3>
             </div>
-            <p className="text-3xl font-bold text-yellow-400">{stats.collectionRate.toFixed(1)}%</p>
+            <p className="text-3xl font-bold text-yellow-400 tabular-nums">{stats.collectionRate.toFixed(1)}%</p>
             <p className="text-sm text-slate-400 mt-2">Paid invoices</p>
           </div>
 
@@ -458,7 +455,7 @@ export default function Reports() {
               <CheckCircle className="w-6 h-6 text-purple-400" />
               <h3 className="text-lg font-semibold">Total Payments</h3>
             </div>
-            <p className="text-3xl font-bold text-purple-400">₹{stats.totalPaymentAmount.toLocaleString()}</p>
+            <p className="text-3xl font-bold text-purple-400 tabular-nums">₹{stats.totalPaymentAmount.toLocaleString()}</p>
             <p className="text-sm text-slate-400 mt-2">Received amount</p>
           </div>
         </div>
@@ -477,7 +474,7 @@ export default function Reports() {
                   <CheckCircle className="w-4 h-4 text-green-400" />
                   <span>Paid</span>
                 </div>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-2 tabular-nums">
                   <span className="font-medium">{stats.paidInvoices}</span>
                   <span className="text-sm text-slate-400">({stats.totalInvoices > 0 ? ((stats.paidInvoices / stats.totalInvoices) * 100).toFixed(1) : 0}%)</span>
                 </div>
@@ -487,7 +484,7 @@ export default function Reports() {
                   <Clock className="w-4 h-4 text-yellow-400" />
                   <span>Pending</span>
                 </div>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-2 tabular-nums">
                   <span className="font-medium">{stats.pendingInvoices}</span>
                   <span className="text-sm text-slate-400">({stats.totalInvoices > 0 ? ((stats.pendingInvoices / stats.totalInvoices) * 100).toFixed(1) : 0}%)</span>
                 </div>
@@ -497,7 +494,7 @@ export default function Reports() {
                   <AlertCircle className="w-4 h-4 text-red-400" />
                   <span>Overdue</span>
                 </div>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-2 tabular-nums">
                   <span className="font-medium">{stats.overdueInvoices}</span>
                   <span className="text-sm text-slate-400">({stats.totalInvoices > 0 ? ((stats.overdueInvoices / stats.totalInvoices) * 100).toFixed(1) : 0}%)</span>
                 </div>
@@ -520,7 +517,7 @@ export default function Reports() {
                     {method === 'online' && <Globe className="w-4 h-4 text-purple-400" />}
                     <span className="capitalize">{method}</span>
                   </div>
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-2 tabular-nums">
                     <span className="font-medium">₹{amount.toLocaleString()}</span>
                     <span className="text-sm text-slate-400">({stats.totalPaymentAmount > 0 ? ((amount / stats.totalPaymentAmount) * 100).toFixed(1) : 0}%)</span>
                   </div>
@@ -534,7 +531,7 @@ export default function Reports() {
         <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-xl">
           <h3 className="text-lg font-semibold mb-4">Recent Activity</h3>
           <div className="space-y-4">
-            {getFilteredData().filteredPayments.slice(0, 10).map((payment) => (
+            {filteredData.filteredPayments.slice(0, 10).map((payment) => (
               <div key={payment.id} className="flex items-center justify-between p-4 bg-white/5 rounded-lg">
                 <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 bg-green-500/20 rounded-full flex items-center justify-center">
@@ -542,11 +539,11 @@ export default function Reports() {
                   </div>
                   <div>
                     <p className="font-medium">{payment.patientName}</p>
-                    <p className="text-sm text-slate-400">Invoice #{payment.invoiceNumber}</p>
+                    <p className="text-sm text-slate-400 tabular-nums">Invoice #{payment.invoiceNumber}</p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="font-medium text-green-400">₹{payment.amount?.toLocaleString()}</p>
+                  <p className="font-medium text-green-400 tabular-nums">₹{payment.amount?.toLocaleString()}</p>
                   <p className="text-sm text-slate-400 capitalize">{payment.method}</p>
                 </div>
               </div>

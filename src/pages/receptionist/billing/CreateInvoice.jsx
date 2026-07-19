@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { collection, addDoc, updateDoc, doc, getDoc, serverTimestamp, query, getDocs, orderBy } from 'firebase/firestore'
 import { db } from '../../../firebase/config'
+import { toast } from 'react-hot-toast'
 import { 
   ArrowLeft, 
   Plus, 
@@ -27,7 +28,6 @@ export default function CreateInvoice() {
   const [loading, setLoading] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [patients, setPatients] = useState([])
-  const [filteredPatients, setFilteredPatients] = useState([])
   const [selectedPatient, setSelectedPatient] = useState(null)
   const [showPatientModal, setShowPatientModal] = useState(false)
   const [patientSearchTerm, setPatientSearchTerm] = useState('')
@@ -68,42 +68,15 @@ export default function CreateInvoice() {
         amount: 0
       }
     ],
-    subtotal: 0,
     taxRate: 18,
-    taxAmount: 0,
     discount: 0,
-    totalAmount: 0,
     notes: '',
     terms: 'Payment due within 7 days of invoice date.',
     status: 'pending'
   })
 
-  // Fetch patients and services on component mount
-  useEffect(() => {
-    fetchPatients()
-    
-    // If we have an ID, we're editing an existing invoice
-    if (id) {
-      setIsEditing(true)
-      loadInvoiceData()
-    }
-  }, [id, loadInvoiceData])
-
-  // Filter patients based on search term
-  useEffect(() => {
-    if (patientSearchTerm) {
-      const filtered = patients.filter(patient =>
-        patient.name?.toLowerCase().includes(patientSearchTerm.toLowerCase()) ||
-        patient.phone?.includes(patientSearchTerm) ||
-        patient.email?.toLowerCase().includes(patientSearchTerm.toLowerCase())
-      )
-      setFilteredPatients(filtered)
-    } else {
-      setFilteredPatients(patients)
-    }
-  }, [patientSearchTerm, patients])
-
-  const fetchPatients = async () => {
+  // Fetch patients from database
+  const fetchPatients = useCallback(async () => {
     try {
       // Fetch patients from appointments (same as prescription page)
       const appointmentsRef = collection(db, 'appointments')
@@ -133,7 +106,6 @@ export default function CreateInvoice() {
       })
       
       setPatients(uniquePatients)
-      setFilteredPatients(uniquePatients)
     } catch (error) {
       console.error('Error fetching patients:', error)
       // Fallback to sample data if collection doesn't exist
@@ -143,54 +115,64 @@ export default function CreateInvoice() {
         { id: '3', name: 'Mike Johnson', phone: '+91 98765 43212', email: 'mike@example.com', address: '789 Pine Rd, Village', age: '42', gender: 'Male', lastVisit: '2024-01-18' }
       ]
       setPatients(samplePatients)
-      setFilteredPatients(samplePatients)
     }
-  }
+  }, [])
 
   // Load existing invoice data for editing
   const loadInvoiceData = useCallback(async () => {
     try {
       const invoiceDoc = await getDoc(doc(db, 'invoices', id))
       if (invoiceDoc.exists()) {
-        const invoiceData = invoiceDoc.data()
+        const data = invoiceDoc.data()
         
         // Set invoice data
         setInvoiceData({
-          ...invoiceData,
-          invoiceDate: invoiceData.invoiceDate ? new Date(invoiceData.invoiceDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-          dueDate: invoiceData.dueDate ? new Date(invoiceData.dueDate).toISOString().split('T')[0] : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+          ...data,
+          invoiceDate: data.invoiceDate ? new Date(data.invoiceDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+          dueDate: data.dueDate ? new Date(data.dueDate).toISOString().split('T')[0] : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
         })
         
         // Set selected patient
-        if (invoiceData.patientId) {
+        if (data.patientId) {
           setSelectedPatient({
-            id: invoiceData.patientId,
-            name: invoiceData.patientName,
-            phone: invoiceData.patientPhone,
-            email: invoiceData.patientEmail,
-            address: invoiceData.patientAddress
+            id: data.patientId,
+            name: data.patientName,
+            phone: data.patientPhone,
+            email: data.patientEmail,
+            address: data.patientAddress
           })
         }
       }
     } catch (error) {
       console.error('Error loading invoice data:', error)
-      alert('Error loading invoice data. Please try again.')
+      toast.error('Error loading invoice data. Please try again.')
     }
   }, [id])
 
-  // Calculate invoice totals
+  // Fetch patients and services on component mount
   useEffect(() => {
-    const subtotal = invoiceData.items.reduce((sum, item) => sum + (item.amount || 0), 0)
-    const taxAmount = (subtotal * invoiceData.taxRate) / 100
-    const totalAmount = subtotal + taxAmount - invoiceData.discount
+    fetchPatients()
+    
+    // If we have an ID, we're editing an existing invoice
+    if (id) {
+      setIsEditing(true)
+      loadInvoiceData()
+    }
+  }, [id, fetchPatients, loadInvoiceData])
 
-    setInvoiceData(prev => ({
-      ...prev,
-      subtotal,
-      taxAmount,
-      totalAmount
-    }))
-  }, [invoiceData.items, invoiceData.taxRate, invoiceData.discount])
+  // Calculate invoice totals as render logic
+  const subtotal = invoiceData.items.reduce((sum, item) => sum + (item.amount || 0), 0)
+  const taxAmount = (subtotal * invoiceData.taxRate) / 100
+  const totalAmount = subtotal + taxAmount - invoiceData.discount
+
+  // Filter patients based on search term as render logic
+  const filteredPatients = patientSearchTerm
+    ? patients.filter(patient =>
+        patient.name?.toLowerCase().includes(patientSearchTerm.toLowerCase()) ||
+        patient.phone?.includes(patientSearchTerm) ||
+        patient.email?.toLowerCase().includes(patientSearchTerm.toLowerCase())
+      )
+    : patients
 
   // Handle patient selection from modal
   const handlePatientSelect = (patient) => {
@@ -317,12 +299,12 @@ export default function CreateInvoice() {
     e.preventDefault()
     
     if (!invoiceData.patientName || !invoiceData.patientPhone) {
-      alert('Please select a patient')
+      toast.error('Please select a patient')
       return
     }
 
     if (invoiceData.items.some(item => !item.description || item.amount <= 0)) {
-      alert('Please fill in all item details')
+      toast.error('Please fill in all item details')
       return
     }
 
@@ -332,11 +314,14 @@ export default function CreateInvoice() {
         // Update existing invoice
         const invoiceToUpdate = {
           ...invoiceData,
+          subtotal,
+          taxAmount,
+          totalAmount,
           updatedAt: serverTimestamp()
         }
         
         await updateDoc(doc(db, 'invoices', id), invoiceToUpdate)
-        alert('Invoice updated successfully!')
+        toast.success('Invoice updated successfully!')
       } else {
         // Create new invoice
         const invoiceNumber = `INV-${Date.now()}-${Math.floor(Math.random() * 1000)}`
@@ -344,18 +329,21 @@ export default function CreateInvoice() {
         const invoiceToSave = {
           ...invoiceData,
           invoiceNumber,
+          subtotal,
+          taxAmount,
+          totalAmount,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp()
         }
 
         await addDoc(collection(db, 'invoices'), invoiceToSave)
-        alert('Invoice created successfully!')
+        toast.success('Invoice created successfully!')
       }
       
       navigate('/receptionist/billing')
     } catch (error) {
       console.error('Error saving invoice:', error)
-      alert(`Error ${isEditing ? 'updating' : 'creating'} invoice. Please try again.`)
+      toast.error(`Error ${isEditing ? 'updating' : 'creating'} invoice. Please try again.`)
     } finally {
       setLoading(false)
     }
@@ -763,20 +751,20 @@ export default function CreateInvoice() {
               <div className="bg-white/10 rounded-lg p-4 space-y-3">
                 <div className="flex justify-between">
                   <span className="text-slate-300">Subtotal:</span>
-                  <span className="font-medium">₹{invoiceData.subtotal.toLocaleString()}</span>
+                  <span className="font-medium tabular-nums">₹{subtotal.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-300">Tax ({invoiceData.taxRate}%):</span>
-                  <span className="font-medium">₹{invoiceData.taxAmount.toLocaleString()}</span>
+                  <span className="font-medium tabular-nums">₹{taxAmount.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-300">Discount:</span>
-                  <span className="font-medium text-red-400">-₹{invoiceData.discount.toLocaleString()}</span>
+                  <span className="font-medium text-red-400 tabular-nums">-₹{invoiceData.discount.toLocaleString()}</span>
                 </div>
                 <div className="border-t border-white/20 pt-3">
                   <div className="flex justify-between text-lg font-bold">
                     <span>Total Amount:</span>
-                    <span className="text-green-400">₹{invoiceData.totalAmount.toLocaleString()}</span>
+                    <span className="text-green-400 tabular-nums">₹{totalAmount.toLocaleString()}</span>
                   </div>
                 </div>
               </div>

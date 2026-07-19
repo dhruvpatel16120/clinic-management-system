@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore'
 import { db } from '../../../firebase/config'
@@ -25,7 +25,6 @@ import {
 
 export default function PaymentHistory() {
   const [payments, setPayments] = useState([])
-  const [filteredPayments, setFilteredPayments] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [methodFilter, setMethodFilter] = useState('all')
@@ -54,30 +53,6 @@ export default function PaymentHistory() {
     if (typeof val.toDate === 'function') return val.toDate()
     return new Date(val)
   }
-
-  useEffect(() => {
-    setLoading(true)
-    const paymentsRef = collection(db, 'payments')
-    const q = query(paymentsRef, orderBy('processedAt', 'desc'))
-    
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const paymentsData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }))
-      setPayments(paymentsData)
-      setFilteredPayments(paymentsData)
-      setLoading(false)
-      
-      // Calculate analytics
-      calculateAnalytics(paymentsData)
-    }, (error) => {
-      console.error('Error fetching payments:', error)
-      setLoading(false)
-    })
-    
-    return () => unsubscribe()
-  }, [calculateAnalytics])
 
   // Calculate analytics
   const calculateAnalytics = useCallback((paymentsData) => {
@@ -137,8 +112,31 @@ export default function PaymentHistory() {
     })
   }, [])
 
-  // Filter and search payments
   useEffect(() => {
+    setLoading(true)
+    const paymentsRef = collection(db, 'payments')
+    const q = query(paymentsRef, orderBy('processedAt', 'desc'))
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const paymentsData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }))
+      setPayments(paymentsData)
+      setLoading(false)
+      
+      // Calculate analytics
+      calculateAnalytics(paymentsData)
+    }, (error) => {
+      console.error('Error fetching payments:', error)
+      setLoading(false)
+    })
+    
+    return () => unsubscribe()
+  }, [calculateAnalytics])
+
+  // Filter and search payments using useMemo
+  const filteredPayments = useMemo(() => {
     let filtered = [...payments]
 
     // Search filter
@@ -217,7 +215,7 @@ export default function PaymentHistory() {
       }
     })
 
-    setFilteredPayments(filtered)
+    return filtered
   }, [payments, searchQuery, methodFilter, dateFilter, sortBy, sortOrder])
 
   // Get payment method icon and color
@@ -365,10 +363,10 @@ export default function PaymentHistory() {
                 onChange={(e) => setMethodFilter(e.target.value)}
                 className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-400"
               >
-                <option value="all">All Methods</option>
-                <option value="cash">Cash</option>
-                <option value="card">Card</option>
-                <option value="online">Online</option>
+                <option value="all" className="bg-slate-800 text-white">All Methods</option>
+                <option value="cash" className="bg-slate-800 text-white">Cash</option>
+                <option value="card" className="bg-slate-800 text-white">Card</option>
+                <option value="online" className="bg-slate-800 text-white">Online</option>
               </select>
             </div>
 
@@ -380,10 +378,10 @@ export default function PaymentHistory() {
                 onChange={(e) => setDateFilter(e.target.value)}
                 className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-400"
               >
-                <option value="all">All Time</option>
-                <option value="today">Today</option>
-                <option value="week">This Week</option>
-                <option value="month">This Month</option>
+                <option value="all" className="bg-slate-800 text-white">All Time</option>
+                <option value="today" className="bg-slate-800 text-white">Today</option>
+                <option value="week" className="bg-slate-800 text-white">This Week</option>
+                <option value="month" className="bg-slate-800 text-white">This Month</option>
               </select>
             </div>
 
@@ -395,9 +393,9 @@ export default function PaymentHistory() {
                 onChange={(e) => setSortBy(e.target.value)}
                 className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-400"
               >
-                <option value="date">Date</option>
-                <option value="amount">Amount</option>
-                <option value="name">Patient Name</option>
+                <option value="date" className="bg-slate-800 text-white">Date</option>
+                <option value="amount" className="bg-slate-800 text-white">Amount</option>
+                <option value="name" className="bg-slate-800 text-white">Patient Name</option>
               </select>
             </div>
           </div>

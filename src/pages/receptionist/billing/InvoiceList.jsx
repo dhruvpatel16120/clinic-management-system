@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore'
 import { db } from '../../../firebase/config'
@@ -25,7 +25,6 @@ import {
 
 export default function InvoiceList() {
   const [invoices, setInvoices] = useState([])
-  const [filteredInvoices, setFilteredInvoices] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
@@ -44,7 +43,6 @@ export default function InvoiceList() {
         ...doc.data()
       }))
       setInvoices(invoicesData)
-      setFilteredInvoices(invoicesData)
       setLoading(false)
     }, (error) => {
       console.error('Error fetching invoices:', error)
@@ -61,8 +59,8 @@ export default function InvoiceList() {
     return new Date(val)
   }
 
-  // Filter and search invoices
-  useEffect(() => {
+  // Filter and search invoices using useMemo
+  const filteredInvoices = useMemo(() => {
     let filtered = [...invoices]
 
     // Search filter
@@ -140,7 +138,7 @@ export default function InvoiceList() {
       }
     })
 
-    setFilteredInvoices(filtered)
+    return filtered
   }, [invoices, searchQuery, statusFilter, dateFilter, sortBy, sortOrder])
 
   // Get status icon and color
@@ -239,10 +237,10 @@ export default function InvoiceList() {
                 onChange={(e) => setStatusFilter(e.target.value)}
                 className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-400"
               >
-                <option value="all">All Status</option>
-                <option value="pending">Pending</option>
-                <option value="paid">Paid</option>
-                <option value="overdue">Overdue</option>
+                <option value="all" className="bg-slate-800 text-white">All Status</option>
+                <option value="pending" className="bg-slate-800 text-white">Pending</option>
+                <option value="paid" className="bg-slate-800 text-white">Paid</option>
+                <option value="overdue" className="bg-slate-800 text-white">Overdue</option>
               </select>
             </div>
 
@@ -254,10 +252,10 @@ export default function InvoiceList() {
                 onChange={(e) => setDateFilter(e.target.value)}
                 className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-400"
               >
-                <option value="all">All Time</option>
-                <option value="today">Today</option>
-                <option value="week">This Week</option>
-                <option value="month">This Month</option>
+                <option value="all" className="bg-slate-800 text-white">All Time</option>
+                <option value="today" className="bg-slate-800 text-white">Today</option>
+                <option value="week" className="bg-slate-800 text-white">This Week</option>
+                <option value="month" className="bg-slate-800 text-white">This Month</option>
               </select>
             </div>
 
@@ -269,9 +267,9 @@ export default function InvoiceList() {
                 onChange={(e) => setSortBy(e.target.value)}
                 className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-400"
               >
-                <option value="date">Date</option>
-                <option value="amount">Amount</option>
-                <option value="name">Patient Name</option>
+                <option value="date" className="bg-slate-800 text-white">Date</option>
+                <option value="amount" className="bg-slate-800 text-white">Amount</option>
+                <option value="name" className="bg-slate-800 text-white">Patient Name</option>
               </select>
             </div>
           </div>
@@ -355,8 +353,8 @@ export default function InvoiceList() {
                             <span className="text-slate-400 text-sm">Not specified</span>
                           )}
                         </td>
-                        <td className="py-3 px-4 text-sm text-slate-400">
-                          {invoice.createdAt?.toDate?.()?.toLocaleDateString() || 'N/A'}
+                        <td className="py-3 px-4 text-sm text-slate-400 tabular-nums">
+                          {getSafeDate(invoice.createdAt).toLocaleDateString()}
                         </td>
                         <td className="py-3 px-4">
                           <div className="flex space-x-2">
@@ -366,13 +364,6 @@ export default function InvoiceList() {
                               title="View Invoice"
                             >
                               <Eye className="w-4 h-4" />
-                            </Link>
-                            <Link
-                              to={`/receptionist/billing/invoices/${invoice.id}/download`}
-                              className="text-green-400 hover:text-green-300 p-1 hover:bg-green-500/20 rounded transition-colors"
-                              title="Download PDF"
-                            >
-                              <Download className="w-4 h-4" />
                             </Link>
                             <Link
                               to={`/receptionist/billing/invoices/${invoice.id}/edit`}

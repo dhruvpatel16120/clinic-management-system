@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { collection, onSnapshot, query, orderBy, where, updateDoc, doc, addDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '../../../firebase/config'
+import { toast } from 'react-hot-toast'
 import { 
   ArrowLeft, 
   Search, 
@@ -23,7 +24,6 @@ import {
 
 export default function PaymentProcessing() {
   const [invoices, setInvoices] = useState([])
-  const [filteredInvoices, setFilteredInvoices] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedInvoice, setSelectedInvoice] = useState(null)
@@ -50,7 +50,6 @@ export default function PaymentProcessing() {
             ...doc.data()
           }))
           setInvoices(invoicesData)
-          setFilteredInvoices(invoicesData)
           setLoading(false)
         }, (error) => {
           console.error('Error fetching invoices:', error)
@@ -71,18 +70,16 @@ export default function PaymentProcessing() {
     }
   }, [])
 
-  // Filter invoices based on search
-  useEffect(() => {
+  // Filter invoices based on search using useMemo
+  const filteredInvoices = useMemo(() => {
     if (searchQuery) {
-      const filtered = invoices.filter(invoice =>
+      return invoices.filter(invoice =>
         invoice.patientName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         invoice.patientPhone?.includes(searchQuery) ||
         invoice.invoiceNumber?.toLowerCase().includes(searchQuery.toLowerCase())
       )
-      setFilteredInvoices(filtered)
-    } else {
-      setFilteredInvoices(invoices)
     }
+    return invoices
   }, [invoices, searchQuery])
 
   // Open payment modal
@@ -100,7 +97,7 @@ export default function PaymentProcessing() {
   // Process payment
   const processPayment = async () => {
     if (!selectedInvoice || !paymentData.amount || paymentData.amount <= 0) {
-      alert('Please enter a valid payment amount')
+      toast.error('Please enter a valid payment amount')
       return
     }
 
@@ -131,7 +128,7 @@ export default function PaymentProcessing() {
         status: 'completed'
       })
 
-      alert('Payment processed successfully!')
+      toast.success('Payment processed successfully!')
       setPaymentModal(false)
       setSelectedInvoice(null)
       setPaymentData({
@@ -142,7 +139,7 @@ export default function PaymentProcessing() {
       })
     } catch (error) {
       console.error('Error processing payment:', error)
-      alert('Error processing payment. Please try again.')
+      toast.error('Error processing payment. Please try again.')
     } finally {
       setProcessingPayment(false)
     }
@@ -253,8 +250,8 @@ export default function PaymentProcessing() {
                   {/* Invoice Header */}
                   <div className="flex justify-between items-start mb-4">
                     <div>
-                      <h3 className="font-mono text-cyan-400 text-lg">#{invoice.invoiceNumber}</h3>
-                      <p className="text-sm text-slate-400">
+                      <h3 className="font-mono text-cyan-400 text-lg tabular-nums">#{invoice.invoiceNumber}</h3>
+                      <p className="text-sm text-slate-400 tabular-nums">
                         Due: {invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : 'N/A'}
                       </p>
                     </div>
@@ -278,19 +275,19 @@ export default function PaymentProcessing() {
                     </div>
                     <div className="flex items-center space-x-2">
                       <Calendar className="w-4 h-4 text-slate-400" />
-                      <span className="text-sm text-slate-400">
-                        Created: {invoice.createdAt?.toDate?.()?.toLocaleDateString() || 'N/A'}
+                      <span className="text-sm text-slate-400 tabular-nums">
+                        Created: {invoice.createdAt ? (invoice.createdAt.toDate ? invoice.createdAt.toDate().toLocaleDateString() : new Date(invoice.createdAt).toLocaleDateString()) : 'N/A'}
                       </span>
                     </div>
                   </div>
 
                   {/* Amount and Overdue Info */}
                   <div className="mb-4">
-                    <div className="text-2xl font-bold text-green-400 mb-2">
+                    <div className="text-2xl font-bold text-green-400 mb-2 tabular-nums">
                       ₹{invoice.totalAmount?.toLocaleString()}
                     </div>
                     {daysOverdue > 0 && (
-                      <div className="text-red-400 text-sm">
+                      <div className="text-red-400 text-sm tabular-nums">
                         {daysOverdue} day{daysOverdue > 1 ? 's' : ''} overdue
                       </div>
                     )}

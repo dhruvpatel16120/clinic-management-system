@@ -12,7 +12,8 @@ import {
   Calendar,
   Plus,
   Eye,
-  Download
+  Download,
+  Receipt
 } from 'lucide-react'
 
 export default function BillingDashboard() {
@@ -146,7 +147,7 @@ export default function BillingDashboard() {
               <FileText className="w-6 h-6 text-blue-400" />
               <h3 className="text-lg font-semibold">Total Invoices</h3>
             </div>
-            <p className="text-3xl font-bold text-blue-400">{stats.totalInvoices}</p>
+            <p className="text-3xl font-bold text-blue-400 tabular-nums">{stats.totalInvoices}</p>
             <p className="text-sm text-slate-400 mt-2">All time</p>
           </div>
 
@@ -155,7 +156,7 @@ export default function BillingDashboard() {
               <DollarSign className="w-6 h-6 text-yellow-400" />
               <h3 className="text-lg font-semibold">Pending Payments</h3>
             </div>
-            <p className="text-3xl font-bold text-yellow-400">{stats.pendingPayments}</p>
+            <p className="text-3xl font-bold text-yellow-400 tabular-nums">{stats.pendingPayments}</p>
             <p className="text-sm text-slate-400 mt-2">Awaiting payment</p>
           </div>
 
@@ -164,7 +165,7 @@ export default function BillingDashboard() {
               <TrendingUp className="w-6 h-6 text-green-400" />
               <h3 className="text-lg font-semibold">Total Revenue</h3>
             </div>
-            <p className="text-3xl font-bold text-green-400">₹{stats.totalRevenue.toLocaleString()}</p>
+            <p className="text-3xl font-bold text-green-400 tabular-nums">₹{stats.totalRevenue.toLocaleString()}</p>
             <p className="text-sm text-slate-400 mt-2">All time</p>
           </div>
 
@@ -173,7 +174,7 @@ export default function BillingDashboard() {
               <Calendar className="w-6 h-6 text-purple-400" />
               <h3 className="text-lg font-semibold">Today's Revenue</h3>
             </div>
-            <p className="text-3xl font-bold text-purple-400">₹{stats.todayRevenue.toLocaleString()}</p>
+            <p className="text-3xl font-bold text-purple-400 tabular-nums">₹{stats.todayRevenue.toLocaleString()}</p>
             <p className="text-sm text-slate-400 mt-2">Today</p>
           </div>
         </div>
@@ -182,10 +183,10 @@ export default function BillingDashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
           <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-xl">
             <div className="flex items-center space-x-3 mb-4">
-                             <Banknote className="w-6 h-6 text-green-400" />
-               <h3 className="text-lg font-semibold">Cash Payments</h3>
+              <Banknote className="w-6 h-6 text-green-400" />
+              <h3 className="text-lg font-semibold">Cash Payments</h3>
             </div>
-            <p className="text-2xl font-bold text-green-400">₹{stats.cashPayments.toLocaleString()}</p>
+            <p className="text-2xl font-bold text-green-400 tabular-nums">₹{stats.cashPayments.toLocaleString()}</p>
             <p className="text-sm text-slate-400 mt-2">Total cash received</p>
           </div>
 
@@ -194,7 +195,7 @@ export default function BillingDashboard() {
               <CreditCard className="w-6 h-6 text-blue-400" />
               <h3 className="text-lg font-semibold">Card Payments</h3>
             </div>
-            <p className="text-2xl font-bold text-blue-400">₹{stats.cardPayments.toLocaleString()}</p>
+            <p className="text-2xl font-bold text-blue-400 tabular-nums">₹{stats.cardPayments.toLocaleString()}</p>
             <p className="text-sm text-slate-400 mt-2">Total card payments</p>
           </div>
 
@@ -203,7 +204,7 @@ export default function BillingDashboard() {
               <Globe className="w-6 h-6 text-purple-400" />
               <h3 className="text-lg font-semibold">Online Payments</h3>
             </div>
-            <p className="text-2xl font-bold text-purple-400">₹{stats.onlinePayments.toLocaleString()}</p>
+            <p className="text-2xl font-bold text-purple-400 tabular-nums">₹{stats.onlinePayments.toLocaleString()}</p>
             <p className="text-sm text-slate-400 mt-2">Total online payments</p>
           </div>
         </div>
@@ -211,7 +212,7 @@ export default function BillingDashboard() {
         {/* Quick Actions */}
         <div className="mb-8">
           <h2 className="text-xl font-bold mb-4">Quick Actions</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             <Link
               to="/receptionist/billing/create"
               className="bg-white/5 border border-white/10 rounded-xl p-4 hover:bg-white/10 transition-colors"
@@ -247,6 +248,19 @@ export default function BillingDashboard() {
                 <div>
                   <h3 className="font-semibold">Process Payments</h3>
                   <p className="text-sm text-slate-400">Handle payments</p>
+                </div>
+              </div>
+            </Link>
+
+            <Link
+              to="/receptionist/billing/history"
+              className="bg-white/5 border border-white/10 rounded-xl p-4 hover:bg-white/10 transition-colors"
+            >
+              <div className="flex items-center space-x-3">
+                <Receipt className="w-5 h-5 text-pink-400" />
+                <div>
+                  <h3 className="font-semibold">Payment History</h3>
+                  <p className="text-sm text-slate-400">Track transactions</p>
                 </div>
               </div>
             </Link>
@@ -306,7 +320,7 @@ export default function BillingDashboard() {
                         </div>
                       </td>
                       <td className="py-3 px-4">
-                        <span className="font-bold text-green-400">₹{invoice.totalAmount?.toLocaleString()}</span>
+                        <span className="font-bold text-green-400 tabular-nums">₹{invoice.totalAmount?.toLocaleString()}</span>
                       </td>
                       <td className="py-3 px-4">
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${
@@ -319,8 +333,8 @@ export default function BillingDashboard() {
                           {invoice.status?.charAt(0).toUpperCase() + invoice.status?.slice(1)}
                         </span>
                       </td>
-                      <td className="py-3 px-4 text-sm text-slate-400">
-                        {invoice.createdAt?.toDate?.()?.toLocaleDateString() || 'N/A'}
+                      <td className="py-3 px-4 text-sm text-slate-400 tabular-nums">
+                        {invoice.createdAt ? (invoice.createdAt.toDate ? invoice.createdAt.toDate().toLocaleDateString() : new Date(invoice.createdAt).toLocaleDateString()) : 'N/A'}
                       </td>
                       <td className="py-3 px-4">
                         <div className="flex space-x-2">
@@ -330,13 +344,6 @@ export default function BillingDashboard() {
                             title="View Invoice"
                           >
                             <Eye className="w-4 h-4" />
-                          </Link>
-                          <Link
-                            to={`/receptionist/billing/invoices/${invoice.id}/download`}
-                            className="text-green-400 hover:text-green-300"
-                            title="Download PDF"
-                          >
-                            <Download className="w-4 h-4" />
                           </Link>
                         </div>
                       </td>
