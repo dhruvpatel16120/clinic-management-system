@@ -28,6 +28,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@vercel/analytics": "^2.0.1",
     "dotenv": "^17.2.1",
     "firebase": "^12.1.0",
     "jspdf": "^4.2.1",
