@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore'
 import { db } from '../../../firebase/config'
 import { jsPDF } from 'jspdf'
-import 'jspdf-autotable'
+import autoTable from 'jspdf-autotable'
 import { toast } from 'react-hot-toast'
 import { 
   ArrowLeft, 
@@ -283,7 +283,7 @@ export default function Reports() {
       doc.line(14, y, 100, y)
       y += 4
 
-      doc.autoTable({
+      autoTable(doc, {
         startY: y,
         head: [['Status', 'Count', 'Amount (Rs.)', 'Percentage']],
         body: [
@@ -355,7 +355,7 @@ export default function Reports() {
       doc.line(14, y, 105, y)
       y += 4
 
-      doc.autoTable({
+      autoTable(doc, {
         startY: y,
         head: [['Payment Method', 'Transactions', 'Amount (Rs.)', 'Share']],
         body: [
@@ -435,7 +435,7 @@ export default function Reports() {
           getSafeDate(inv.createdAt).toLocaleDateString('en-IN')
         ])
 
-        doc.autoTable({
+        autoTable(doc, {
           startY: y,
           head: [['Invoice #', 'Patient', 'Phone', 'Amount', 'Status', 'Date']],
           body: invoiceRows,
@@ -499,7 +499,7 @@ export default function Reports() {
           getSafeDate(p.processedAt).toLocaleDateString('en-IN')
         ])
 
-        doc.autoTable({
+        autoTable(doc, {
           startY: y,
           head: [['Invoice #', 'Patient', 'Amount', 'Method', 'Reference', 'Date']],
           body: paymentRows,
