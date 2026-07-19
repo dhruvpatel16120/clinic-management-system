@@ -34,30 +34,32 @@ export default function InvoiceList() {
   const [sortOrder, setSortOrder] = useState('desc')
 
   useEffect(() => {
-    const fetchInvoices = async () => {
-      try {
-        const invoicesRef = collection(db, 'invoices')
-        const q = query(invoicesRef, orderBy('createdAt', 'desc'))
-        
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-          const invoicesData = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-          }))
-          setInvoices(invoicesData)
-          setFilteredInvoices(invoicesData)
-          setLoading(false)
-        })
-        
-        return unsubscribe
-      } catch (error) {
-        console.error('Error fetching invoices:', error)
-        setLoading(false)
-      }
-    }
+    setLoading(true)
+    const invoicesRef = collection(db, 'invoices')
+    const q = query(invoicesRef, orderBy('createdAt', 'desc'))
     
-    fetchInvoices()
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const invoicesData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }))
+      setInvoices(invoicesData)
+      setFilteredInvoices(invoicesData)
+      setLoading(false)
+    }, (error) => {
+      console.error('Error fetching invoices:', error)
+      setLoading(false)
+    })
+    
+    return () => unsubscribe()
   }, [])
+
+  // Helper to safely parse Firestore Timestamp, string or date value
+  const getSafeDate = (val) => {
+    if (!val) return new Date(0)
+    if (typeof val.toDate === 'function') return val.toDate()
+    return new Date(val)
+  }
 
   // Filter and search invoices
   useEffect(() => {
@@ -85,7 +87,7 @@ export default function InvoiceList() {
       switch (dateFilter) {
         case 'today': {
           filtered = filtered.filter(invoice => {
-            const invoiceDate = invoice.createdAt?.toDate?.() || new Date(invoice.createdAt)
+            const invoiceDate = getSafeDate(invoice.createdAt)
             return invoiceDate >= startOfDay
           })
           break
@@ -93,7 +95,7 @@ export default function InvoiceList() {
         case 'week': {
           const weekAgo = new Date(startOfDay.getTime() - 7 * 24 * 60 * 60 * 1000)
           filtered = filtered.filter(invoice => {
-            const invoiceDate = invoice.createdAt?.toDate?.() || new Date(invoice.createdAt)
+            const invoiceDate = getSafeDate(invoice.createdAt)
             return invoiceDate >= weekAgo
           })
           break
@@ -101,7 +103,7 @@ export default function InvoiceList() {
         case 'month': {
           const monthAgo = new Date(startOfDay.getTime() - 30 * 24 * 60 * 60 * 1000)
           filtered = filtered.filter(invoice => {
-            const invoiceDate = invoice.createdAt?.toDate?.() || new Date(invoice.createdAt)
+            const invoiceDate = getSafeDate(invoice.createdAt)
             return invoiceDate >= monthAgo
           })
           break
@@ -115,8 +117,8 @@ export default function InvoiceList() {
       
       switch (sortBy) {
         case 'date':
-          aValue = a.createdAt?.toDate?.() || new Date(a.createdAt)
-          bValue = b.createdAt?.toDate?.() || new Date(b.createdAt)
+          aValue = getSafeDate(a.createdAt)
+          bValue = getSafeDate(b.createdAt)
           break
         case 'amount':
           aValue = a.totalAmount || 0
@@ -127,8 +129,8 @@ export default function InvoiceList() {
           bValue = b.patientName || ''
           break
         default:
-          aValue = a.createdAt?.toDate?.() || new Date(a.createdAt)
-          bValue = b.createdAt?.toDate?.() || new Date(b.createdAt)
+          aValue = getSafeDate(a.createdAt)
+          bValue = getSafeDate(b.createdAt)
       }
 
       if (sortOrder === 'asc') {

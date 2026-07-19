@@ -22,7 +22,7 @@ import {
   CalendarRange,
   CalendarCheck
 } from 'lucide-react'
-import { collection, onSnapshot, query, orderBy, doc, deleteDoc } from 'firebase/firestore'
+import { collection, onSnapshot, query, doc, deleteDoc, where } from 'firebase/firestore'
 import { db } from '../../../firebase/config'
 
 export default function Prescriptions() {
@@ -41,46 +41,24 @@ export default function Prescriptions() {
 
     setLoading(true)
     
-    // Fetch all prescriptions and filter by doctor
+    // Query prescriptions for this specific doctor (privacy & performance)
     const prescriptionsRef = collection(db, 'prescriptions')
-    const q = query(prescriptionsRef, orderBy('createdAt', 'desc'))
+    const q = query(
+      prescriptionsRef,
+      where('doctorId', '==', currentUser.uid)
+    )
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const allPrescriptions = snapshot.docs.map(doc => ({
+      const doctorPrescriptions = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       }))
       
-      // Filter prescriptions for this doctor
-      const doctorPrescriptions = allPrescriptions.filter(prescription => {
-        const prescriptionDoctorName = prescription.doctorName || ''
-        const currentDoctorName = currentUser.displayName || ''
-        
-        // Try exact match first
-        if (prescriptionDoctorName === currentDoctorName) {
-          return true
-        }
-        
-        // Try case-insensitive match
-        if (prescriptionDoctorName.toLowerCase() === currentDoctorName.toLowerCase()) {
-          return true
-        }
-        
-        // Try matching without "Dr." prefix
-        const cleanPrescriptionName = prescriptionDoctorName.replace(/^Dr\.\s*/i, '').trim()
-        const cleanCurrentName = currentDoctorName.replace(/^Dr\.\s*/i, '').trim()
-        if (cleanPrescriptionName === cleanCurrentName) {
-          return true
-        }
-        
-        // Try matching with "Dr." prefix
-        const withDrPrescriptionName = prescriptionDoctorName.startsWith('Dr.') ? prescriptionDoctorName : `Dr. ${prescriptionDoctorName}`
-        const withDrCurrentName = currentDoctorName.startsWith('Dr.') ? currentDoctorName : `Dr. ${currentDoctorName}`
-        if (withDrPrescriptionName === withDrCurrentName) {
-          return true
-        }
-        
-        return false
+      // Sort prescriptions by createdAt descending in memory (avoids composite index requirement)
+      doctorPrescriptions.sort((a, b) => {
+        const dateA = a.createdAt ? new Date(a.createdAt) : new Date(0)
+        const dateB = b.createdAt ? new Date(b.createdAt) : new Date(0)
+        return dateB - dateA
       })
       
       setPrescriptions(doctorPrescriptions)

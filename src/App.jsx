@@ -31,8 +31,14 @@ import PaymentProcessing from './pages/receptionist/billing/PaymentProcessing'
 import PaymentHistory from './pages/receptionist/billing/PaymentHistory'
 import InvoicePdfGenerator from './pages/receptionist/billing/InvoicePdfGenerator'
 import Reports from './pages/receptionist/billing/Reports'
+import FirebaseWarning from './components/FirebaseWarning'
+import { isFirebaseConfigured } from './firebase/config'
 
 function App() {
+  if (!isFirebaseConfigured) {
+    return <FirebaseWarning />
+  }
+
   return (
     <Routes>
       <Route path="/" element={<Home />} />

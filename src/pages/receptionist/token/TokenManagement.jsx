@@ -33,59 +33,51 @@ export default function TokenManagement() {
 
   // Fetch appointments for the selected date
   useEffect(() => {
-    const fetchAppointments = async () => {
-      if (!selectedDate) return
+    if (!selectedDate) return
 
-      setLoading(true)
-      try {
-        const appointmentsRef = collection(db, 'appointments')
-        const q = query(
-          appointmentsRef, 
-          where('appointmentDate', '==', selectedDate)
-        )
+    setLoading(true)
+    const appointmentsRef = collection(db, 'appointments')
+    const q = query(
+      appointmentsRef, 
+      where('appointmentDate', '==', selectedDate)
+    )
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const appointmentsData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }))
+      
+      // Sort by token number if available, otherwise by creation time
+      const sortedAppointments = appointmentsData.sort((a, b) => {
+        if (a.tokenNumber && b.tokenNumber) {
+          return a.tokenNumber - b.tokenNumber
+        }
+        if (a.tokenNumber) return -1
+        if (b.tokenNumber) return 1
         
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-          const appointmentsData = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-          }))
-          
-          // Sort by token number if available, otherwise by creation time
-          const sortedAppointments = appointmentsData.sort((a, b) => {
-            if (a.tokenNumber && b.tokenNumber) {
-              return a.tokenNumber - b.tokenNumber
-            }
-            if (a.tokenNumber) return -1
-            if (b.tokenNumber) return 1
-            // Parse dates for comparison
-            const dateA = new Date(a.createdAt || 0)
-            const dateB = new Date(b.createdAt || 0)
-            return dateA - dateB
-          })
-          
-          setAppointments(sortedAppointments)
-          setFilteredAppointments(sortedAppointments)
-          
-          // Calculate next token number
-          const maxToken = sortedAppointments.reduce((max, apt) => {
-            return apt.tokenNumber && apt.tokenNumber > max ? apt.tokenNumber : max
-          }, 0)
-          setNextTokenNumber(maxToken + 1)
-        }, (error) => {
-          console.error('Error fetching appointments:', error)
-          toast.error('Error loading appointments')
-        })
+        // Safely parse dates for comparison
+        const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : (a.createdAt ? new Date(a.createdAt) : new Date(0))
+        const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : (b.createdAt ? new Date(b.createdAt) : new Date(0))
+        return dateA - dateB
+      })
+      
+      setAppointments(sortedAppointments)
+      setFilteredAppointments(sortedAppointments)
+      
+      // Calculate next token number
+      const maxToken = sortedAppointments.reduce((max, apt) => {
+        return apt.tokenNumber && apt.tokenNumber > max ? apt.tokenNumber : max
+      }, 0)
+      setNextTokenNumber(maxToken + 1)
+      setLoading(false)
+    }, (error) => {
+      console.error('Error fetching appointments:', error)
+      toast.error('Error loading appointments')
+      setLoading(false)
+    })
 
-        return () => unsubscribe()
-      } catch (error) {
-        console.error('Error fetching appointments:', error)
-        toast.error('Error loading appointments')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchAppointments()
+    return () => unsubscribe()
   }, [selectedDate])
 
   // Filter appointments based on search and status

@@ -33,44 +33,47 @@ export default function Reports() {
   const [searchQuery, setSearchQuery] = useState('')
 
   useEffect(() => {
-    fetchData()
+    setLoading(true)
+    
+    // Fetch invoices
+    const invoicesRef = collection(db, 'invoices')
+    const invoicesQuery = query(invoicesRef, orderBy('createdAt', 'desc'))
+    const invoicesUnsubscribe = onSnapshot(invoicesQuery, (snapshot) => {
+      const invoicesData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }))
+      setInvoices(invoicesData)
+    }, (error) => {
+      console.error('Error fetching invoices:', error)
+    })
+
+    // Fetch payments
+    const paymentsRef = collection(db, 'payments')
+    const paymentsQuery = query(paymentsRef, orderBy('processedAt', 'desc'))
+    const paymentsUnsubscribe = onSnapshot(paymentsQuery, (snapshot) => {
+      const paymentsData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }))
+      setPayments(paymentsData)
+      setLoading(false)
+    }, (error) => {
+      console.error('Error fetching payments:', error)
+      setLoading(false)
+    })
+
+    return () => {
+      invoicesUnsubscribe()
+      paymentsUnsubscribe()
+    }
   }, [])
 
-  const fetchData = async () => {
-    try {
-      // Fetch invoices
-      const invoicesRef = collection(db, 'invoices')
-      const invoicesQuery = query(invoicesRef, orderBy('createdAt', 'desc'))
-      
-      const invoicesUnsubscribe = onSnapshot(invoicesQuery, (snapshot) => {
-        const invoicesData = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }))
-        setInvoices(invoicesData)
-      })
-
-      // Fetch payments
-      const paymentsRef = collection(db, 'payments')
-      const paymentsQuery = query(paymentsRef, orderBy('processedAt', 'desc'))
-      
-      const paymentsUnsubscribe = onSnapshot(paymentsQuery, (snapshot) => {
-        const paymentsData = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }))
-        setPayments(paymentsData)
-        setLoading(false)
-      })
-
-      return () => {
-        invoicesUnsubscribe()
-        paymentsUnsubscribe()
-      }
-    } catch (error) {
-      console.error('Error fetching data:', error)
-      setLoading(false)
-    }
+  // Helper to safely parse Firestore Timestamp, string or date value
+  const getSafeDate = (val) => {
+    if (!val) return new Date(0)
+    if (typeof val.toDate === 'function') return val.toDate()
+    return new Date(val)
   }
 
   // Filter data based on date range
@@ -85,22 +88,22 @@ export default function Reports() {
     switch (dateRange) {
       case 'today':
         filteredInvoices = filteredInvoices.filter(invoice => {
-          const invoiceDate = invoice.createdAt?.toDate?.() || new Date(invoice.createdAt)
+          const invoiceDate = getSafeDate(invoice.createdAt)
           return invoiceDate >= startOfDay
         })
         filteredPayments = filteredPayments.filter(payment => {
-          const paymentDate = payment.processedAt?.toDate?.() || new Date(payment.processedAt)
+          const paymentDate = getSafeDate(payment.processedAt)
           return paymentDate >= startOfDay
         })
         break
       case 'week': {
         const weekAgo = new Date(startOfDay.getTime() - 7 * 24 * 60 * 60 * 1000)
         filteredInvoices = filteredInvoices.filter(invoice => {
-          const invoiceDate = invoice.createdAt?.toDate?.() || new Date(invoice.createdAt)
+          const invoiceDate = getSafeDate(invoice.createdAt)
           return invoiceDate >= weekAgo
         })
         filteredPayments = filteredPayments.filter(payment => {
-          const paymentDate = payment.processedAt?.toDate?.() || new Date(payment.processedAt)
+          const paymentDate = getSafeDate(payment.processedAt)
           return paymentDate >= weekAgo
         })
         break
@@ -108,11 +111,11 @@ export default function Reports() {
       case 'month': {
         const monthAgo = new Date(startOfDay.getTime() - 30 * 24 * 60 * 60 * 1000)
         filteredInvoices = filteredInvoices.filter(invoice => {
-          const invoiceDate = invoice.createdAt?.toDate?.() || new Date(invoice.createdAt)
+          const invoiceDate = getSafeDate(invoice.createdAt)
           return invoiceDate >= monthAgo
         })
         filteredPayments = filteredPayments.filter(payment => {
-          const paymentDate = payment.processedAt?.toDate?.() || new Date(payment.processedAt)
+          const paymentDate = getSafeDate(payment.processedAt)
           return paymentDate >= monthAgo
         })
         break
@@ -120,11 +123,11 @@ export default function Reports() {
       case 'quarter': {
         const quarterAgo = new Date(startOfDay.getTime() - 90 * 24 * 60 * 60 * 1000)
         filteredInvoices = filteredInvoices.filter(invoice => {
-          const invoiceDate = invoice.createdAt?.toDate?.() || new Date(invoice.createdAt)
+          const invoiceDate = getSafeDate(invoice.createdAt)
           return invoiceDate >= quarterAgo
         })
         filteredPayments = filteredPayments.filter(payment => {
-          const paymentDate = payment.processedAt?.toDate?.() || new Date(payment.processedAt)
+          const paymentDate = getSafeDate(payment.processedAt)
           return paymentDate >= quarterAgo
         })
         break
@@ -132,11 +135,11 @@ export default function Reports() {
       case 'year': {
         const yearAgo = new Date(startOfDay.getTime() - 365 * 24 * 60 * 60 * 1000)
         filteredInvoices = filteredInvoices.filter(invoice => {
-          const invoiceDate = invoice.createdAt?.toDate?.() || new Date(invoice.createdAt)
+          const invoiceDate = getSafeDate(invoice.createdAt)
           return invoiceDate >= yearAgo
         })
         filteredPayments = filteredPayments.filter(payment => {
-          const paymentDate = payment.processedAt?.toDate?.() || new Date(payment.processedAt)
+          const paymentDate = getSafeDate(payment.processedAt)
           return paymentDate >= yearAgo
         })
         break
@@ -190,7 +193,7 @@ export default function Reports() {
     // Monthly trends
     const monthlyData = {}
     filteredInvoices.forEach(invoice => {
-      const date = invoice.createdAt?.toDate?.() || new Date(invoice.createdAt)
+      const date = getSafeDate(invoice.createdAt)
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
       monthlyData[monthKey] = (monthlyData[monthKey] || 0) + (invoice.totalAmount || 0)
     })
@@ -251,7 +254,7 @@ export default function Reports() {
         invoice.patientPhone || '',
         invoice.totalAmount || 0,
         invoice.status || '',
-        invoice.createdAt?.toDate?.()?.toLocaleDateString() || '',
+        getSafeDate(invoice.createdAt).toLocaleDateString(),
         invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : ''
       ])
     ].map(row => row.join(',')).join('\n')
@@ -265,7 +268,7 @@ export default function Reports() {
         payment.amount || 0,
         payment.method || '',
         payment.reference || '',
-        payment.processedAt?.toDate?.()?.toLocaleDateString() || ''
+        getSafeDate(payment.processedAt).toLocaleDateString()
       ])
     ].map(row => row.join(',')).join('\n')
     

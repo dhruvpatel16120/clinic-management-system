@@ -12,7 +12,7 @@ export default function Receptionist() {
   const [appointments, setAppointments] = useState([])
   const [todayAppointments, setTodayAppointments] = useState(0)
   const [todayPrescriptions, setTodayPrescriptions] = useState(0)
-  const [totalAppointments, setTotalAppointments] = useState(0)
+  const [totalInvoices, setTotalInvoices] = useState(0)
 
   // Fetch real appointment data
   useEffect(() => {
@@ -30,7 +30,6 @@ export default function Receptionist() {
       const today = new Date().toISOString().split('T')[0]
       const todayCount = appointmentsData.filter(apt => apt.appointmentDate === today).length
       setTodayAppointments(todayCount)
-      setTotalAppointments(appointmentsData.length)
     }, (error) => {
       console.error('Error fetching appointments:', error)
     })
@@ -55,6 +54,18 @@ export default function Receptionist() {
       setTodayPrescriptions(todayCount)
     }, (error) => {
       console.error('Error fetching prescriptions:', error)
+    })
+
+    return () => unsubscribe()
+  }, [])
+
+  // Fetch invoices data to count total invoices
+  useEffect(() => {
+    const invoicesRef = collection(db, 'invoices')
+    const unsubscribe = onSnapshot(invoicesRef, (snapshot) => {
+      setTotalInvoices(snapshot.docs.length)
+    }, (error) => {
+      console.error('Error fetching invoices:', error)
     })
 
     return () => unsubscribe()
@@ -87,7 +98,7 @@ export default function Receptionist() {
               <DollarSign className="w-6 h-6 text-cyan-400" />
               <h3 className="text-lg font-semibold">Billing & Payments</h3>
             </div>
-            <p className="text-3xl font-bold text-cyan-400">{totalAppointments}</p>
+            <p className="text-3xl font-bold text-cyan-400">{totalInvoices}</p>
             <p className="text-sm text-slate-400 mt-2">Total invoices</p>
             <p className="text-xs text-cyan-400 mt-2">Click to manage billing →</p>
           </Link>
@@ -126,7 +137,9 @@ export default function Receptionist() {
               </div>
               <Hash className="w-4 h-4 text-blue-400" />
             </div>
-            <p className="text-3xl font-bold text-blue-400">{appointments.filter(apt => apt.tokenNumber).length}</p>
+            <p className="text-3xl font-bold text-blue-400">
+              {appointments.filter(apt => apt.appointmentDate === new Date().toISOString().split('T')[0] && apt.tokenNumber).length}
+            </p>
             <p className="text-sm text-slate-400 mt-2">Tokens generated today</p>
             <p className="text-xs text-blue-400 mt-2">Click to manage tokens →</p>
           </Link>

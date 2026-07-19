@@ -1,12 +1,16 @@
 import { useState, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { FaEnvelope, FaCircleCheck, FaArrowRight, FaStar, FaUserDoctor, FaBellConcierge, FaClock, FaShieldHalved } from 'react-icons/fa6'
+import { useAuth } from '../../hooks/useAuth'
+import toast from 'react-hot-toast'
 
 export default function VerifyEmail() {
   const location = useLocation()
   const navigate = useNavigate()
+  const { resendVerificationEmail } = useAuth()
   const [countdown, setCountdown] = useState(20)
   const [isRedirecting, setIsRedirecting] = useState(false)
+  const [isResending, setIsResending] = useState(false)
   
   // Get data from signup form
   const { role, email, fullName } = location.state || { role: 'staff', email: 'user@example.com', fullName: 'User' }
@@ -38,6 +42,19 @@ export default function VerifyEmail() {
   const handleManualRedirect = () => {
     setIsRedirecting(true)
     setTimeout(() => navigate('/login'), 500)
+  }
+
+  const handleResendEmail = async () => {
+    setIsResending(true)
+    try {
+      await resendVerificationEmail()
+      toast.success('Verification email resent successfully! Please check your inbox.')
+    } catch (error) {
+      console.error('Error resending email:', error)
+      toast.error(error.message || 'Failed to resend verification email.')
+    } finally {
+      setIsResending(false)
+    }
   }
 
   return (
@@ -153,11 +170,12 @@ export default function VerifyEmail() {
               </button>
               
               <button 
-                onClick={() => window.location.reload()}
-                className="w-full py-3 px-6 border-2 border-white/20 bg-white/5 hover:border-blue-400/40 hover:bg-blue-400/10 text-white font-medium rounded-2xl transition-all duration-300 hover:shadow-lg hover:shadow-blue-400/20"
+                onClick={handleResendEmail}
+                disabled={isResending}
+                className="w-full py-3 px-6 border-2 border-white/20 bg-white/5 hover:border-blue-400/40 hover:bg-blue-400/10 disabled:cursor-not-allowed text-white font-medium rounded-2xl transition-all duration-300 hover:shadow-lg hover:shadow-blue-400/20"
               >
-                <FaShieldHalved className="w-4 h-4 mr-2 inline" />
-                Resend Verification Email
+                <FaShieldHalved className={`w-4 h-4 mr-2 inline ${isResending ? 'animate-spin' : ''}`} />
+                {isResending ? 'Sending...' : 'Resend Verification Email'}
               </button>
             </div>
           </div>

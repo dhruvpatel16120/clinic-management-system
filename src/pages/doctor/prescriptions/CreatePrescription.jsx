@@ -142,12 +142,17 @@ export default function CreatePrescription() {
 
   // Fetch patients and medicines
   useEffect(() => {
+    let active = true
+    let unsubscribe
+    
     const fetchData = async () => {
       try {
         // Fetch patients from appointments
         const appointmentsRef = collection(db, 'appointments')
         const appointmentsQuery = query(appointmentsRef, orderBy('createdAt', 'desc'))
         const appointmentsSnapshot = await getDocs(appointmentsQuery)
+        
+        if (!active) return
         
         const uniquePatients = []
         const patientMap = new Map()
@@ -177,7 +182,8 @@ export default function CreatePrescription() {
         const medicinesRef = collection(db, 'medicines')
         const medicinesQuery = query(medicinesRef, orderBy('name', 'asc'))
         
-        const unsubscribe = onSnapshot(medicinesQuery, (snapshot) => {
+        unsubscribe = onSnapshot(medicinesQuery, (snapshot) => {
+          if (!active) return
           const medicinesData = snapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data()
@@ -185,15 +191,20 @@ export default function CreatePrescription() {
           setMedicines(medicinesData)
           setFilteredMedicines(medicinesData)
         })
-
-        return () => unsubscribe()
       } catch (error) {
-        console.error('Error fetching data:', error)
-        toast.error('Error loading data')
+        if (active) {
+          console.error('Error fetching data:', error)
+          toast.error('Error loading data')
+        }
       }
     }
 
     fetchData()
+    
+    return () => {
+      active = false
+      if (unsubscribe) unsubscribe()
+    }
   }, [])
 
   // Filter medicines based on search

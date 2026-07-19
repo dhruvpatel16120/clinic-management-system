@@ -29,64 +29,62 @@ export default function BillingDashboard() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const fetchBillingData = async () => {
-      try {
-        // Fetch invoices
-        const invoicesRef = collection(db, 'invoices')
-        const invoicesQuery = query(invoicesRef, orderBy('createdAt', 'desc'))
-        
-        const unsubscribe = onSnapshot(invoicesQuery, (snapshot) => {
-          const invoicesData = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-          }))
-          
-          // Calculate statistics
-          const totalInvoices = invoicesData.length
-          const pendingPayments = invoicesData.filter(inv => inv.status === 'pending').length
-          const totalRevenue = invoicesData.reduce((sum, inv) => sum + (inv.totalAmount || 0), 0)
-          
-          // Today's revenue
-          const today = new Date().toISOString().split('T')[0]
-          const todayRevenue = invoicesData
-            .filter(inv => inv.createdAt?.toDate?.()?.toISOString?.()?.split('T')[0] === today)
-            .reduce((sum, inv) => sum + (inv.totalAmount || 0), 0)
-          
-          // Payment method breakdown
-          const cashPayments = invoicesData
-            .filter(inv => inv.paymentMethod === 'cash' && inv.status === 'paid')
-            .reduce((sum, inv) => sum + (inv.totalAmount || 0), 0)
-          
-          const cardPayments = invoicesData
-            .filter(inv => inv.paymentMethod === 'card' && inv.status === 'paid')
-            .reduce((sum, inv) => sum + (inv.totalAmount || 0), 0)
-          
-          const onlinePayments = invoicesData
-            .filter(inv => inv.paymentMethod === 'online' && inv.status === 'paid')
-            .reduce((sum, inv) => sum + (inv.totalAmount || 0), 0)
-          
-          setStats({
-            totalInvoices,
-            pendingPayments,
-            totalRevenue,
-            todayRevenue,
-            cashPayments,
-            cardPayments,
-            onlinePayments
-          })
-          
-          setRecentInvoices(invoicesData.slice(0, 5))
-          setLoading(false)
-        })
-        
-        return unsubscribe
-      } catch (error) {
-        console.error('Error fetching billing data:', error)
-        setLoading(false)
-      }
-    }
+    setLoading(true)
+    const invoicesRef = collection(db, 'invoices')
+    const invoicesQuery = query(invoicesRef, orderBy('createdAt', 'desc'))
     
-    fetchBillingData()
+    const unsubscribe = onSnapshot(invoicesQuery, (snapshot) => {
+      const invoicesData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }))
+      
+      // Calculate statistics
+      const totalInvoices = invoicesData.length
+      const pendingPayments = invoicesData.filter(inv => inv.status === 'pending').length
+      const totalRevenue = invoicesData.reduce((sum, inv) => sum + (inv.totalAmount || 0), 0)
+      
+      // Today's revenue
+      const today = new Date().toISOString().split('T')[0]
+      const todayRevenue = invoicesData
+        .filter(inv => {
+          if (!inv.createdAt) return false
+          const dateStr = inv.createdAt.toDate ? inv.createdAt.toDate().toISOString() : new Date(inv.createdAt).toISOString()
+          return dateStr.split('T')[0] === today
+        })
+        .reduce((sum, inv) => sum + (inv.totalAmount || 0), 0)
+      
+      // Payment method breakdown
+      const cashPayments = invoicesData
+        .filter(inv => inv.paymentMethod === 'cash' && inv.status === 'paid')
+        .reduce((sum, inv) => sum + (inv.totalAmount || 0), 0)
+      
+      const cardPayments = invoicesData
+        .filter(inv => inv.paymentMethod === 'card' && inv.status === 'paid')
+        .reduce((sum, inv) => sum + (inv.totalAmount || 0), 0)
+      
+      const onlinePayments = invoicesData
+        .filter(inv => inv.paymentMethod === 'online' && inv.status === 'paid')
+        .reduce((sum, inv) => sum + (inv.totalAmount || 0), 0)
+      
+      setStats({
+        totalInvoices,
+        pendingPayments,
+        totalRevenue,
+        todayRevenue,
+        cashPayments,
+        cardPayments,
+        onlinePayments
+      })
+      
+      setRecentInvoices(invoicesData.slice(0, 5))
+      setLoading(false)
+    }, (error) => {
+      console.error('Error fetching billing data:', error)
+      setLoading(false)
+    })
+    
+    return () => unsubscribe()
   }, [])
 
   if (loading) {

@@ -26,7 +26,9 @@ export function AuthProvider({ children }) {
   }
 
   async function logout() {
-    await signOut(auth)
+    if (auth) {
+      await signOut(auth)
+    }
   }
 
   async function resetPassword(email) {
@@ -51,6 +53,11 @@ export function AuthProvider({ children }) {
   }
 
   useEffect(() => {
+    if (!auth) {
+      setLoading(false)
+      return
+    }
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         setCurrentUser(user)

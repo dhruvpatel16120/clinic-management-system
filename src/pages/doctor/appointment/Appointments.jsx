@@ -18,7 +18,7 @@ import {
   CalendarCheck,
   ArrowLeft
 } from 'lucide-react'
-import { collection, onSnapshot, query, orderBy, updateDoc, doc, getDoc } from 'firebase/firestore'
+import { collection, onSnapshot, query, orderBy, updateDoc, doc, getDoc, where } from 'firebase/firestore'
 import { db } from '../../../firebase/config'
 
 export default function DoctorAppointments() {
@@ -28,12 +28,12 @@ export default function DoctorAppointments() {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
   const [viewMode, setViewMode] = useState('today') // today, week, month
   const [searchTerm, setSearchTerm] = useState('')
-      const [selectedAppointment, setSelectedAppointment] = useState(null)
+  const [selectedAppointment, setSelectedAppointment] = useState(null)
   const [showPatientDetails, setShowPatientDetails] = useState(false)
 
   const [doctorName, setDoctorName] = useState('')
 
-  // Fetch doctor's name from staffData collection
+  // Fetch doctor's name from staffData collection to match appointments
   useEffect(() => {
     if (!currentUser) return
 
@@ -44,16 +44,13 @@ export default function DoctorAppointments() {
         
         if (userDoc.exists()) {
           const userData = userDoc.data()
-          // Use fullName from staffData, fallback to displayName, then to 'Unknown Doctor'
-          const name = userData.fullName || currentUser.displayName || 'Unknown Doctor'
-          setDoctorName(name)
+          setDoctorName(userData.fullName || currentUser.displayName || '')
         } else {
-          // Fallback to displayName if no staffData document exists
-          setDoctorName(currentUser.displayName || 'Unknown Doctor')
+          setDoctorName(currentUser.displayName || '')
         }
       } catch (error) {
         console.error('Error fetching doctor name:', error)
-        setDoctorName(currentUser.displayName || 'Unknown Doctor')
+        setDoctorName(currentUser.displayName || '')
       }
     }
 
@@ -66,48 +63,19 @@ export default function DoctorAppointments() {
 
     toast.success('Loading your appointments...')
     
-    // Fetch all appointments and filter client-side to handle name variations
-    
+    // Fetch only appointments for this doctor using the composite index
     const appointmentsRef = collection(db, 'appointments')
-    const q = query(appointmentsRef, orderBy('createdAt', 'desc'))
+    const q = query(
+      appointmentsRef,
+      where('doctorName', '==', doctorName),
+      orderBy('createdAt', 'desc')
+    )
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const allAppointments = snapshot.docs.map(doc => ({
+      const doctorAppointments = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       }))
-      
-      // Filter appointments for this doctor with multiple name variations
-      const doctorAppointments = allAppointments.filter(appointment => {
-        const appointmentDoctorName = appointment.doctorName || ''
-        const currentDoctorName = doctorName || ''
-        
-        // Try exact match first
-        if (appointmentDoctorName === currentDoctorName) {
-          return true
-        }
-        
-        // Try case-insensitive match
-        if (appointmentDoctorName.toLowerCase() === currentDoctorName.toLowerCase()) {
-          return true
-        }
-        
-        // Try matching without "Dr." prefix
-        const cleanAppointmentName = appointmentDoctorName.replace(/^Dr\.\s*/i, '').trim()
-        const cleanCurrentName = currentDoctorName.replace(/^Dr\.\s*/i, '').trim()
-        if (cleanAppointmentName === cleanCurrentName) {
-          return true
-        }
-        
-        // Try matching with "Dr." prefix
-        const withDrAppointmentName = appointmentDoctorName.startsWith('Dr.') ? appointmentDoctorName : `Dr. ${appointmentDoctorName}`
-        const withDrCurrentName = currentDoctorName.startsWith('Dr.') ? currentDoctorName : `Dr. ${currentDoctorName}`
-        if (withDrAppointmentName === withDrCurrentName) {
-          return true
-        }
-        
-        return false
-      })
       
       setAppointments(doctorAppointments)
       

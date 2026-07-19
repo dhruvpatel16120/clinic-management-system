@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore'
 import { db } from '../../../firebase/config'
@@ -48,37 +48,39 @@ export default function PaymentHistory() {
     monthAmount: 0
   })
 
+  // Helper to safely parse Firestore Timestamp, string or date value
+  const getSafeDate = (val) => {
+    if (!val) return new Date(0)
+    if (typeof val.toDate === 'function') return val.toDate()
+    return new Date(val)
+  }
+
   useEffect(() => {
-    const fetchPayments = async () => {
-      try {
-        const paymentsRef = collection(db, 'payments')
-        const q = query(paymentsRef, orderBy('processedAt', 'desc'))
-        
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-          const paymentsData = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-          }))
-          setPayments(paymentsData)
-          setFilteredPayments(paymentsData)
-          setLoading(false)
-          
-          // Calculate analytics
-          calculateAnalytics(paymentsData)
-        })
-        
-        return unsubscribe
-      } catch (error) {
-        console.error('Error fetching payments:', error)
-        setLoading(false)
-      }
-    }
+    setLoading(true)
+    const paymentsRef = collection(db, 'payments')
+    const q = query(paymentsRef, orderBy('processedAt', 'desc'))
     
-    fetchPayments()
-  }, [])
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const paymentsData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }))
+      setPayments(paymentsData)
+      setFilteredPayments(paymentsData)
+      setLoading(false)
+      
+      // Calculate analytics
+      calculateAnalytics(paymentsData)
+    }, (error) => {
+      console.error('Error fetching payments:', error)
+      setLoading(false)
+    })
+    
+    return () => unsubscribe()
+  }, [calculateAnalytics])
 
   // Calculate analytics
-  const calculateAnalytics = (paymentsData) => {
+  const calculateAnalytics = useCallback((paymentsData) => {
     const totalPayments = paymentsData.length
     const totalAmount = paymentsData.reduce((sum, payment) => sum + (payment.amount || 0), 0)
     
@@ -102,17 +104,17 @@ export default function PaymentHistory() {
     const monthAgo = new Date(startOfDay.getTime() - 30 * 24 * 60 * 60 * 1000)
     
     const todayPayments = paymentsData.filter(payment => {
-      const paymentDate = payment.processedAt?.toDate?.() || new Date(payment.processedAt)
+      const paymentDate = getSafeDate(payment.processedAt)
       return paymentDate >= startOfDay
     })
     
     const weekPayments = paymentsData.filter(payment => {
-      const paymentDate = payment.processedAt?.toDate?.() || new Date(payment.processedAt)
+      const paymentDate = getSafeDate(payment.processedAt)
       return paymentDate >= weekAgo
     })
     
     const monthPayments = paymentsData.filter(payment => {
-      const paymentDate = payment.processedAt?.toDate?.() || new Date(payment.processedAt)
+      const paymentDate = getSafeDate(payment.processedAt)
       return paymentDate >= monthAgo
     })
     
@@ -133,7 +135,7 @@ export default function PaymentHistory() {
       monthPayments: monthPayments.length,
       monthAmount
     })
-  }
+  }, [])
 
   // Filter and search payments
   useEffect(() => {
@@ -162,7 +164,7 @@ export default function PaymentHistory() {
       switch (dateFilter) {
         case 'today': {
           filtered = filtered.filter(payment => {
-            const paymentDate = payment.processedAt?.toDate?.() || new Date(payment.processedAt)
+            const paymentDate = getSafeDate(payment.processedAt)
             return paymentDate >= startOfDay
           })
           break
@@ -170,7 +172,7 @@ export default function PaymentHistory() {
         case 'week': {
           const weekAgo = new Date(startOfDay.getTime() - 7 * 24 * 60 * 60 * 1000)
           filtered = filtered.filter(payment => {
-            const paymentDate = payment.processedAt?.toDate?.() || new Date(payment.processedAt)
+            const paymentDate = getSafeDate(payment.processedAt)
             return paymentDate >= weekAgo
           })
           break
@@ -178,7 +180,7 @@ export default function PaymentHistory() {
         case 'month': {
           const monthAgo = new Date(startOfDay.getTime() - 30 * 24 * 60 * 60 * 1000)
           filtered = filtered.filter(payment => {
-            const paymentDate = payment.processedAt?.toDate?.() || new Date(payment.processedAt)
+            const paymentDate = getSafeDate(payment.processedAt)
             return paymentDate >= monthAgo
           })
           break
@@ -192,8 +194,8 @@ export default function PaymentHistory() {
       
       switch (sortBy) {
         case 'date':
-          aValue = a.processedAt?.toDate?.() || new Date(a.processedAt)
-          bValue = b.processedAt?.toDate?.() || new Date(b.processedAt)
+          aValue = getSafeDate(a.processedAt)
+          bValue = getSafeDate(b.processedAt)
           break
         case 'amount':
           aValue = a.amount || 0
@@ -204,8 +206,8 @@ export default function PaymentHistory() {
           bValue = b.patientName || ''
           break
         default:
-          aValue = a.processedAt?.toDate?.() || new Date(a.processedAt)
-          bValue = b.processedAt?.toDate?.() || new Date(b.processedAt)
+          aValue = getSafeDate(a.processedAt)
+          bValue = getSafeDate(b.processedAt)
       }
 
       if (sortOrder === 'asc') {

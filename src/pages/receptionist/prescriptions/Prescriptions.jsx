@@ -74,26 +74,20 @@ export default function ReceptionistPrescriptions() {
 
   // Fetch doctors
   useEffect(() => {
-    const fetchDoctors = async () => {
-      try {
-        const staffRef = collection(db, 'staffData')
-        const staffQuery = query(staffRef, where('role', '==', 'doctor'))
-        
-        const unsubscribe = onSnapshot(staffQuery, (snapshot) => {
-          const doctorsData = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-          }))
-          setDoctors(doctorsData)
-        })
+    const staffRef = collection(db, 'staffData')
+    const staffQuery = query(staffRef, where('role', '==', 'doctor'))
+    
+    const unsubscribe = onSnapshot(staffQuery, (snapshot) => {
+      const doctorsData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }))
+      setDoctors(doctorsData)
+    }, (error) => {
+      console.error('Error fetching doctors:', error)
+    })
 
-        return () => unsubscribe()
-      } catch (error) {
-        console.error('Error fetching doctors:', error)
-      }
-    }
-
-    fetchDoctors()
+    return () => unsubscribe()
   }, [])
 
   useEffect(() => {
