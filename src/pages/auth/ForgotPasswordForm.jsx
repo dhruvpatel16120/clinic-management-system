@@ -33,8 +33,8 @@ export default function ForgotPasswordForm() {
       setIsSubmitted(true);
     } catch (error) {
       console.error('Password reset error:', error);
-      // Handle specific Firebase errors
-      let errorMessage = 'Failed to send reset email. Please try again.';
+      
+      let errorMessage = error.message || 'Failed to send reset email. Please try again.';
       
       if (error.code === 'auth/user-not-found') {
         errorMessage = 'No account found with this email address.';

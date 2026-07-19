@@ -19,6 +19,10 @@ export default function ProtectedRoute({ children, requiredRole = null }) {
     return <Navigate to="/login" replace />
   }
 
+  if (!currentUser.emailVerified) {
+    return <Navigate to="/verify-email" state={{ role: userRole, email: currentUser.email, fullName: currentUser.displayName }} replace />
+  }
+
   if (requiredRole && userRole !== requiredRole) {
     // Redirect to login with error message or to appropriate dashboard
     if (userRole === 'doctor') {

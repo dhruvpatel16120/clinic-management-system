@@ -1,16 +1,18 @@
 import { useState, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { FaEnvelope, FaCircleCheck, FaArrowRight, FaStar, FaUserDoctor, FaBellConcierge, FaClock, FaShieldHalved } from 'react-icons/fa6'
+import { FaEnvelope, FaCircleCheck, FaArrowRight, FaStar, FaUserDoctor, FaBellConcierge, FaClock, FaShieldHalved, FaArrowsRotate } from 'react-icons/fa6'
 import { useAuth } from '../../hooks/useAuth'
+import { fetchUserRoleFromFirestore } from '../../utils/authUtils'
 import toast from 'react-hot-toast'
 
 export default function VerifyEmail() {
   const location = useLocation()
   const navigate = useNavigate()
-  const { resendVerificationEmail } = useAuth()
+  const { currentUser, resendVerificationEmail } = useAuth()
   const [countdown, setCountdown] = useState(20)
   const [isRedirecting, setIsRedirecting] = useState(false)
   const [isResending, setIsResending] = useState(false)
+  const [isChecking, setIsChecking] = useState(false)
   
   // Get data from signup form
   const { role, email, fullName } = location.state || { role: 'staff', email: 'user@example.com', fullName: 'User' }
@@ -54,6 +56,48 @@ export default function VerifyEmail() {
       toast.error(error.message || 'Failed to resend verification email.')
     } finally {
       setIsResending(false)
+    }
+  }
+
+  const handleCheckStatus = async () => {
+    if (!currentUser) {
+      toast.error('Session expired or user not found. Please log in again.')
+      navigate('/login')
+      return
+    }
+    
+    setIsChecking(true)
+    try {
+      await currentUser.reload()
+      
+      if (currentUser.emailVerified) {
+        toast.success('Email verified successfully! Redirecting to dashboard...')
+        
+        let targetRole = role
+        if (!location.state || !location.state.role) {
+          const fetchedRole = await fetchUserRoleFromFirestore(currentUser.uid)
+          if (fetchedRole) {
+            targetRole = fetchedRole
+          }
+        }
+
+        setTimeout(() => {
+          if (targetRole === 'doctor') {
+            navigate('/doctor')
+          } else if (targetRole === 'receptionist') {
+            navigate('/receptionist')
+          } else {
+            navigate('/')
+          }
+        }, 1500)
+      } else {
+        toast.error('Email is still not verified. Please check your inbox and click the verification link.')
+      }
+    } catch (error) {
+      console.error('Error checking verification status:', error)
+      toast.error(error.message || 'Failed to check verification status. Please try again.')
+    } finally {
+      setIsChecking(false)
     }
   }
 
@@ -152,13 +196,31 @@ export default function VerifyEmail() {
             {/* Action Buttons */}
             <div className="space-y-3">
               <button 
+                onClick={handleCheckStatus}
+                disabled={isChecking || isRedirecting}
+                className="w-full py-4 px-6 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 disabled:from-slate-600 disabled:to-slate-700 disabled:cursor-not-allowed text-slate-900 font-bold text-lg rounded-2xl shadow-lg shadow-emerald-500/25 hover:shadow-xl hover:shadow-emerald-500/40 transition-all duration-300 transform hover:scale-105 disabled:transform-none disabled:scale-100 cursor-pointer"
+              >
+                {isChecking ? (
+                  <div className="flex items-center justify-center space-x-2">
+                    <FaArrowsRotate className="w-5 h-5 animate-spin" />
+                    <span>Checking Status...</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center space-x-2">
+                    <FaCircleCheck className="w-5 h-5" />
+                    <span>Check Verification Status</span>
+                  </div>
+                )}
+              </button>
+
+              <button 
                 onClick={handleManualRedirect}
-                disabled={isRedirecting}
-                className="w-full py-4 px-6 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 disabled:from-slate-600 disabled:to-slate-700 disabled:cursor-not-allowed text-slate-900 font-bold text-lg rounded-2xl shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/40 transition-all duration-300 transform hover:scale-105 disabled:transform-none disabled:scale-100"
+                disabled={isRedirecting || isChecking}
+                className="w-full py-3.5 px-6 border-2 border-white/20 bg-white/5 hover:border-blue-400/40 hover:bg-blue-400/10 disabled:cursor-not-allowed text-white font-medium rounded-2xl transition-all duration-300 hover:shadow-lg hover:shadow-blue-400/20 cursor-pointer"
               >
                 {isRedirecting ? (
                   <div className="flex items-center justify-center space-x-2">
-                    <div className="w-5 h-5 border-2 border-slate-900 border-t-transparent rounded-full animate-spin"></div>
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                     <span>Redirecting...</span>
                   </div>
                 ) : (
@@ -171,8 +233,8 @@ export default function VerifyEmail() {
               
               <button 
                 onClick={handleResendEmail}
-                disabled={isResending}
-                className="w-full py-3 px-6 border-2 border-white/20 bg-white/5 hover:border-blue-400/40 hover:bg-blue-400/10 disabled:cursor-not-allowed text-white font-medium rounded-2xl transition-all duration-300 hover:shadow-lg hover:shadow-blue-400/20"
+                disabled={isResending || isChecking}
+                className="w-full py-3 px-6 border-2 border-white/20 bg-white/5 hover:border-blue-400/40 hover:bg-blue-400/10 disabled:cursor-not-allowed text-white font-medium rounded-2xl transition-all duration-300 hover:shadow-lg hover:shadow-blue-400/20 cursor-pointer"
               >
                 <FaShieldHalved className={`w-4 h-4 mr-2 inline ${isResending ? 'animate-spin' : ''}`} />
                 {isResending ? 'Sending...' : 'Resend Verification Email'}

@@ -50,15 +50,35 @@ export async function signInUser(email, password) {
   const userCredential = await signInWithEmailAndPassword(auth, email, password)
   const user = userCredential.user
 
+  let userData = {}
   if (user.uid) {
     // Check if the user document exists in Firestore
     const userDocRef = doc(db, 'staffData', user.uid)
     const userDoc = await getDoc(userDocRef)
     
     if (userDoc.exists()) {
+      userData = userDoc.data()
+    }
+  }
+
+  if (!user.emailVerified) {
+    const error = new Error('Email not verified')
+    error.code = 'auth/email-not-verified'
+    error.email = user.email
+    error.fullName = userData.fullName || user.displayName || 'User'
+    error.role = userData.role || 'doctor'
+    throw error
+  }
+
+  if (user.uid) {
+    const userDocRef = doc(db, 'staffData', user.uid)
+    const userDoc = await getDoc(userDocRef)
+    
+    if (userDoc.exists()) {
       // Update existing document
       await updateDoc(userDocRef, {
-        lastLogin: new Date().toISOString()
+        lastLogin: new Date().toISOString(),
+        emailVerified: true
       })
     } else {
       // Create new document if it doesn't exist (fallback for users created before Firestore integration)
@@ -67,7 +87,7 @@ export async function signInUser(email, password) {
         email: user.email,
         fullName: user.displayName || 'Unknown',
         role: 'doctor', // Default role - user can update this later
-        emailVerified: user.emailVerified,
+        emailVerified: true,
         createdAt: new Date().toISOString(),
         lastLogin: new Date().toISOString(),
         verificationEmailSent: null

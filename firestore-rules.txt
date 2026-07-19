@@ -1,49 +1,59 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow authenticated users to read and write to appointments collection
+    
+    // Helper function to check if the user is authenticated and has a verified email
+    function isVerifiedUser() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+
+    // Allow authenticated, verified users to read and write to appointments collection
     match /appointments/{document} {
-      allow read, write: if request.auth != null;
+      allow read, write: if isVerifiedUser();
     }
     
-    // Allow authenticated users to read and write to staffData collection
-    match /staffData/{document} {
-      allow read, write: if request.auth != null;
+    // Allow authenticated users to read staffData. But only the user themselves can write to their own staffData.
+    // Also, allow initial creation during signup (when email is not verified yet!)
+    match /staffData/{userId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow update: if isVerifiedUser() && request.auth.uid == userId && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'email']);
+      allow delete: if false;
     }
     
-    // Allow authenticated users to read and write to test collection (for debugging)
+    // Allow authenticated, verified users to read and write to test collection (for debugging)
     match /test/{document} {
-      allow read, write: if request.auth != null;
+      allow read, write: if isVerifiedUser();
     }
     
-    // Allow authenticated users to read and write to prescriptions collection
+    // Allow authenticated, verified users to read and write to prescriptions collection
     match /prescriptions/{document} {
-      allow read, write: if request.auth != null;
+      allow read, write: if isVerifiedUser();
     }
     
-    // Allow authenticated users to read and write to medicines collection
+    // Allow authenticated, verified users to read and write to medicines collection
     match /medicines/{document} {
-      allow read, write: if request.auth != null;
+      allow read, write: if isVerifiedUser();
     }
     
-    // Allow authenticated users to read and write to invoices collection
+    // Allow authenticated, verified users to read and write to invoices collection
     match /invoices/{document} {
-      allow read, write: if request.auth != null;
+      allow read, write: if isVerifiedUser();
     }
     
-    // Allow authenticated users to read and write to payments collection
+    // Allow authenticated, verified users to read and write to payments collection
     match /payments/{document} {
-      allow read, write: if request.auth != null;
+      allow read, write: if isVerifiedUser();
     }
     
-    // Allow authenticated users to read and write to patients collection
+    // Allow authenticated, verified users to read and write to patients collection
     match /patients/{document} {
-      allow read, write: if request.auth != null;
+      allow read, write: if isVerifiedUser();
     }
     
-    // Allow authenticated users to read and write to services collection
+    // Allow authenticated, verified users to read and write to services collection
     match /services/{document} {
-      allow read, write: if request.auth != null;
+      allow read, write: if isVerifiedUser();
     }
     
     // Default rule - deny all other access

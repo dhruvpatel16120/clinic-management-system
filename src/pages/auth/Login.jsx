@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { FaHospital, FaEnvelope, FaLock, FaEye, FaEyeSlash, FaArrowRight, FaStar, FaShieldHalved, FaUserDoctor, FaUserTie } from 'react-icons/fa6'
+import toast from 'react-hot-toast'
 import { useAuth } from '../../hooks/useAuth'
 import { fetchUserRoleFromFirestore } from '../../utils/authUtils'
 
@@ -46,26 +47,40 @@ export default function Login() {
          // If no role is found, redirect to doctor by default (fallback)
          navigate('/doctor')
        }
-    } catch (error) {
-      console.error('Login error:', error)
-      // Handle specific Firebase errors
-      let errorMessage = 'Failed to sign in. Please try again.'
-      
-      if (error.code === 'auth/user-not-found') {
-        errorMessage = 'No account found with this email address.'
-      } else if (error.code === 'auth/wrong-password') {
-        errorMessage = 'Incorrect password. Please try again.'
-      } else if (error.code === 'auth/invalid-email') {
-        errorMessage = 'Please enter a valid email address.'
-      } else if (error.code === 'auth/user-disabled') {
-        errorMessage = 'This account has been disabled.'
-      } else if (error.message.includes('No document to update')) {
-        errorMessage = 'Account setup incomplete. Please contact support.'
-      }
-      
-      setError(errorMessage)
-      setIsLoading(false)
-    }
+     } catch (error) {
+       console.error('Login error:', error)
+       
+       if (error.code === 'auth/email-not-verified') {
+         toast.error('Your email is not verified yet. Please verify it to log in.')
+         navigate('/verify-email', { 
+           state: { 
+             role: error.role, 
+             email: error.email, 
+             fullName: error.fullName 
+           } 
+         })
+         setIsLoading(false)
+         return
+       }
+       
+       // Handle specific Firebase errors
+       let errorMessage = 'Failed to sign in. Please try again.'
+       
+       if (error.code === 'auth/user-not-found') {
+         errorMessage = 'No account found with this email address.'
+       } else if (error.code === 'auth/wrong-password') {
+         errorMessage = 'Incorrect password. Please try again.'
+       } else if (error.code === 'auth/invalid-email') {
+         errorMessage = 'Please enter a valid email address.'
+       } else if (error.code === 'auth/user-disabled') {
+         errorMessage = 'This account has been disabled.'
+       } else if (error.message.includes('No document to update')) {
+         errorMessage = 'Account setup incomplete. Please contact support.'
+       }
+       
+       setError(errorMessage)
+       setIsLoading(false)
+     }
   }
 
   return (
