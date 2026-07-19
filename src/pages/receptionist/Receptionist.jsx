@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import LogoutButton from '../../components/LogoutButton'
 import EmailVerificationStatus from '../../components/EmailVerificationStatus'
-import { Bell, UserPlus, CalendarCheck, Users, Calendar, FileText, FileDown, Hash, DollarSign } from 'lucide-react'
+import { Bell, UserPlus, CalendarCheck, Users, Calendar, FileText, FileDown, Hash, DollarSign, CreditCard } from 'lucide-react'
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore'
 import { db } from '../../firebase/config'
 
@@ -18,14 +18,14 @@ export default function Receptionist() {
   useEffect(() => {
     const appointmentsRef = collection(db, 'appointments')
     const q = query(appointmentsRef, orderBy('createdAt', 'desc'))
-    
+
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const appointmentsData = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       }))
       setAppointments(appointmentsData)
-      
+
       // Calculate today's appointments
       const today = new Date().toISOString().split('T')[0]
       const todayCount = appointmentsData.filter(apt => apt.appointmentDate === today).length
@@ -41,13 +41,13 @@ export default function Receptionist() {
   useEffect(() => {
     const prescriptionsRef = collection(db, 'prescriptions')
     const q = query(prescriptionsRef, orderBy('createdAt', 'desc'))
-    
+
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const prescriptionsData = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       }))
-      
+
       // Calculate today's prescriptions
       const today = new Date().toISOString().split('T')[0]
       const todayCount = prescriptionsData.filter(pres => pres.prescriptionDate === today).length
@@ -159,52 +159,12 @@ export default function Receptionist() {
               </div>
             </Link>
 
-            <Link to="/receptionist/prescriptions" className="bg-white/5 border border-white/10 rounded-xl p-4 hover:bg-white/10 transition-colors">
-              <div className="flex items-center space-x-3">
-                <FileText className="w-5 h-5 text-purple-400" />
-                <div>
-                  <h3 className="font-semibold">View Prescriptions</h3>
-                  <p className="text-sm text-slate-400">Manage patient prescriptions</p>
-                </div>
-              </div>
-            </Link>
-
             <Link to="/receptionist/appointments" className="bg-white/5 border border-white/10 rounded-xl p-4 hover:bg-white/10 transition-colors">
               <div className="flex items-center space-x-3">
                 <UserPlus className="w-5 h-5 text-cyan-400" />
                 <div>
                   <h3 className="font-semibold">Create Appointment</h3>
                   <p className="text-sm text-slate-400">Schedule new appointment</p>
-                </div>
-              </div>
-            </Link>
-
-            <Link to="/receptionist/tokens" className="bg-white/5 border border-white/10 rounded-xl p-4 hover:bg-white/10 transition-colors">
-              <div className="flex items-center space-x-3">
-                <Hash className="w-5 h-5 text-blue-400" />
-                <div>
-                  <h3 className="font-semibold">Token Management</h3>
-                  <p className="text-sm text-slate-400">Manage patient tokens</p>
-                </div>
-              </div>
-            </Link>
-
-            <Link to="/receptionist/billing" className="bg-white/5 border border-white/10 rounded-xl p-4 hover:bg-white/10 transition-colors">
-              <div className="flex items-center space-x-3">
-                <DollarSign className="w-5 h-5 text-green-400" />
-                <div>
-                  <h3 className="font-semibold">Billing & Payments</h3>
-                  <p className="text-sm text-slate-400">Manage invoices and payments</p>
-                </div>
-              </div>
-            </Link>
-
-            <Link to="/receptionist/billing/reports" className="bg-white/5 border border-white/10 rounded-xl p-4 hover:bg-white/10 transition-colors">
-              <div className="flex items-center space-x-3">
-                <FileDown className="w-5 h-5 text-yellow-400" />
-                <div>
-                  <h3 className="font-semibold">Download Reports</h3>
-                  <p className="text-sm text-slate-400">Generate and download reports</p>
                 </div>
               </div>
             </Link>
@@ -221,10 +181,51 @@ export default function Receptionist() {
 
             <Link to="/receptionist/billing/payments" className="bg-white/5 border border-white/10 rounded-xl p-4 hover:bg-white/10 transition-colors">
               <div className="flex items-center space-x-3">
-                <Calendar className="w-5 h-5 text-purple-400" />
+                <CreditCard className="w-5 h-5 text-purple-400" />
                 <div>
                   <h3 className="font-semibold">Process Payments</h3>
                   <p className="text-sm text-slate-400">Handle patient payments</p>
+                </div>
+              </div>
+            </Link>
+
+            {/* ROW 2: Non-billing (Cols 1,2) | Billing (Cols 3,4) */}
+            <Link to="/receptionist/prescriptions" className="bg-white/5 border border-white/10 rounded-xl p-4 hover:bg-white/10 transition-colors">
+              <div className="flex items-center space-x-3">
+                <FileText className="w-5 h-5 text-purple-400" />
+                <div>
+                  <h3 className="font-semibold">View Prescriptions</h3>
+                  <p className="text-sm text-slate-400">Manage patient prescriptions</p>
+                </div>
+              </div>
+            </Link>
+
+            <Link to="/receptionist/tokens" className="bg-white/5 border border-white/10 rounded-xl p-4 hover:bg-white/10 transition-colors">
+              <div className="flex items-center space-x-3">
+                <Hash className="w-5 h-5 text-blue-400" />
+                <div>
+                  <h3 className="font-semibold">Token Management</h3>
+                  <p className="text-sm text-slate-400">Manage patient tokens</p>
+                </div>
+              </div>
+            </Link>
+
+            <Link to="/receptionist/billing" className="bg-white/5 border border-white/10 rounded-xl p-4 hover:bg-white/10 transition-colors">
+              <div className="flex items-center space-x-3">
+                <Users className="w-5 h-5 text-green-400" />
+                <div>
+                  <h3 className="font-semibold">Billing & Payments</h3>
+                  <p className="text-sm text-slate-400">Manage invoices and payments</p>
+                </div>
+              </div>
+            </Link>
+
+            <Link to="/receptionist/billing/reports" className="bg-white/5 border border-white/10 rounded-xl p-4 hover:bg-white/10 transition-colors">
+              <div className="flex items-center space-x-3">
+                <FileDown className="w-5 h-5 text-yellow-400" />
+                <div>
+                  <h3 className="font-semibold">Download Reports</h3>
+                  <p className="text-sm text-slate-400">Generate and download reports</p>
                 </div>
               </div>
             </Link>
